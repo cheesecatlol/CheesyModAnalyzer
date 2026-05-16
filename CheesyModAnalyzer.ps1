@@ -455,25 +455,73 @@ $detectedFolders = [System.Collections.Generic.List[hashtable]]::new()
 $vanillaPath = Join-Path $env:APPDATA ".minecraft\mods"
 if (Test-Path $vanillaPath) { $detectedFolders.Add(@{ Label = "Vanilla/Fabric/Forge"; Path = $vanillaPath }) }
 
-# CurseForge
-$cfBase = Join-Path $env:USERPROFILE "curseforge\minecraft\Instances"
-if (Test-Path $cfBase) {
-    Get-ChildItem -Path $cfBase -Directory | ForEach-Object {
-        $mp = Join-Path $_.FullName "mods"
-        if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "CurseForge: $($_.Name)"; Path = $mp }) }
+# CurseForge (two possible install locations)
+$cfBases = @(
+    (Join-Path $env:USERPROFILE "curseforge\minecraft\Instances"),
+    (Join-Path $env:USERPROFILE "Documents\curseforge\minecraft\Instances"),
+    "C:\curseforge\minecraft\Instances"
+)
+foreach ($cfBase in $cfBases) {
+    if (Test-Path $cfBase) {
+        Get-ChildItem -Path $cfBase -Directory | ForEach-Object {
+            $mp = Join-Path $_.FullName "mods"
+            if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "CurseForge: $($_.Name)"; Path = $mp }) }
+        }
     }
 }
 
-# Prism Launcher
+# Modrinth App
+$modrinthBases = @(
+    (Join-Path $env:APPDATA "com.modrinth.theseus\profiles"),
+    (Join-Path $env:LOCALAPPDATA "com.modrinth.theseus\profiles"),
+    (Join-Path $env:APPDATA "ModrinthApp\profiles"),
+    (Join-Path $env:LOCALAPPDATA "ModrinthApp\profiles")
+)
+foreach ($mrBase in $modrinthBases) {
+    if (Test-Path $mrBase) {
+        Get-ChildItem -Path $mrBase -Directory | ForEach-Object {
+            $mp = Join-Path $_.FullName "mods"
+            if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "Modrinth: $($_.Name)"; Path = $mp }) }
+        }
+    }
+}
+
+# Prism Launcher (all known paths including portable and ATLauncher-style)
 $prismBases = @(
     (Join-Path $env:APPDATA "PrismLauncher\instances"),
-    (Join-Path $env:LOCALAPPDATA "PrismLauncher\instances")
+    (Join-Path $env:LOCALAPPDATA "PrismLauncher\instances"),
+    (Join-Path $env:APPDATA "prismlauncher\instances"),
+    (Join-Path $env:LOCALAPPDATA "prismlauncher\instances")
 )
 foreach ($prismBase in $prismBases) {
     if (Test-Path $prismBase) {
         Get-ChildItem -Path $prismBase -Directory | ForEach-Object {
+            # Prism stores mods in <instance>/.minecraft/mods
             $mp = Join-Path $_.FullName ".minecraft\mods"
             if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "Prism: $($_.Name)"; Path = $mp }) }
+        }
+    }
+}
+
+# ATLauncher
+$atlBase = Join-Path $env:APPDATA "ATLauncher\instances"
+if (Test-Path $atlBase) {
+    Get-ChildItem -Path $atlBase -Directory | ForEach-Object {
+        $mp = Join-Path $_.FullName "mods"
+        if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "ATLauncher: $($_.Name)"; Path = $mp }) }
+    }
+}
+
+# MultiMC
+$mmcBases = @(
+    (Join-Path $env:APPDATA "MultiMC\instances"),
+    (Join-Path $env:LOCALAPPDATA "MultiMC\instances")
+)
+foreach ($mmcBase in $mmcBases) {
+    if (Test-Path $mmcBase) {
+        Get-ChildItem -Path $mmcBase -Directory | ForEach-Object {
+            $mp = Join-Path $_.FullName ".minecraft\mods"
+            if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "MultiMC: $($_.Name)"; Path = $mp }) }
         }
     }
 }
