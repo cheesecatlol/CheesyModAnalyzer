@@ -241,14 +241,70 @@ if ($procs) {
     Write-Host ""
 }
 
-# Folder selection
-$defaultPath = Join-Path $env:APPDATA ".minecraft\mods"
-Write-Host "  Mods folder " -NoNewline -ForegroundColor DarkGray
-Write-Host "(press Enter for default)" -ForegroundColor DarkGray
-Write-Host "  Default: $defaultPath" -ForegroundColor Yellow
+# ── Auto-detect mod folders ────────────────────────────────────
+$detectedFolders = [System.Collections.Generic.List[hashtable]]::new()
+
+# Vanilla / Forge / Fabric
+$vanillaPath = Join-Path $env:APPDATA ".minecraft\mods"
+if (Test-Path $vanillaPath) { $detectedFolders.Add(@{ Label = "Vanilla/Fabric/Forge"; Path = $vanillaPath }) }
+
+# CurseForge
+$cfBase = Join-Path $env:USERPROFILE "curseforge\minecraft\Instances"
+if (Test-Path $cfBase) {
+    Get-ChildItem -Path $cfBase -Directory | ForEach-Object {
+        $mp = Join-Path $_.FullName "mods"
+        if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "CurseForge: $($_.Name)"; Path = $mp }) }
+    }
+}
+
+# Prism Launcher
+$prismBases = @(
+    (Join-Path $env:APPDATA "PrismLauncher\instances"),
+    (Join-Path $env:LOCALAPPDATA "PrismLauncher\instances")
+)
+foreach ($prismBase in $prismBases) {
+    if (Test-Path $prismBase) {
+        Get-ChildItem -Path $prismBase -Directory | ForEach-Object {
+            $mp = Join-Path $_.FullName ".minecraft\mods"
+            if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "Prism: $($_.Name)"; Path = $mp }) }
+        }
+    }
+}
+
+# Show detected folders
+Write-Host "  Detected mod folders:" -ForegroundColor DarkGray
 Write-Host ""
-$userInput = Read-Host "  Path"
-$modsPath  = if ([string]::IsNullOrWhiteSpace($userInput)) { $defaultPath } else { $userInput.Trim() }
+if ($detectedFolders.Count -gt 0) {
+    for ($n = 0; $n -lt $detectedFolders.Count; $n++) {
+        Write-Host "  " -NoNewline
+        Write-Host " $($n+1) " -NoNewline -ForegroundColor Black -BackgroundColor Yellow
+        Write-Host "  $($detectedFolders[$n].Label)" -NoNewline -ForegroundColor White
+        Write-Host "  $($detectedFolders[$n].Path)" -ForegroundColor DarkGray
+    }
+    Write-Host ""
+    Write-Host "  Enter a number to select, or type a custom path:" -ForegroundColor DarkGray
+} else {
+    Write-Host "  No mod folders detected automatically." -ForegroundColor DarkYellow
+    Write-Host "  Enter a custom path:" -ForegroundColor DarkGray
+}
+
+Write-Host ""
+$userInput = Read-Host "  Choice"
+
+if ($userInput -match '^\d+$') {
+    $idx = [int]$userInput - 1
+    if ($idx -ge 0 -and $idx -lt $detectedFolders.Count) {
+        $modsPath = $detectedFolders[$idx].Path
+    } else {
+        Write-Host "  [ERROR] Invalid number." -ForegroundColor Red
+        Read-Host "  Press Enter to exit"
+        exit 1
+    }
+} elseif ([string]::IsNullOrWhiteSpace($userInput) -and $detectedFolders.Count -gt 0) {
+    $modsPath = $detectedFolders[0].Path
+} else {
+    $modsPath = $userInput.Trim()
+}
 
 if (-not (Test-Path $modsPath)) {
     Write-Host ""
