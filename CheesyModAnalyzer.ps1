@@ -244,7 +244,7 @@ $RiskySources  = @(
 function Get-DownloadSource([string]$FilePath) {
     $adsPath = "${FilePath}:Zone.Identifier"
     try {
-        if (Test-Path $adsPath) {
+        if (Test-Path -LiteralPath $FilePath) {
             $content = Get-Content -LiteralPath $adsPath -Raw -ErrorAction Stop
             foreach ($safe in $SafeSources) {
                 if ($content -match [regex]::Escape($safe)) { return @{ Label = $safe; IsSafe = $true } }
@@ -568,7 +568,7 @@ if (-not (Test-Path $modsPath)) {
     exit 1
 }
 
-$jarFiles = Get-ChildItem -Path $modsPath -Filter "*.jar" -File
+$jarFiles = Get-ChildItem -Path $modsPath -File | Where-Object { $_.Name -like "*.jar" -or $_.Name -like "*.jar.disabled" }
 if ($jarFiles.Count -eq 0) {
     Write-Host ""
     Write-Host "  No .jar files found in: $modsPath" -ForegroundColor DarkYellow
@@ -597,6 +597,15 @@ $suspicious = [System.Collections.Generic.List[hashtable]]::new()
 $i = 0
 foreach ($jar in $jarFiles) {
     $i++
+
+    # Skip disabled mods
+    if ($jar.Name -like "*.jar.disabled") {
+        $displayName = $jar.Name -replace '\.disabled$', ''
+        Write-Host "  [" -NoNewline -ForegroundColor DarkYellow
+        Write-Host " DISABLED " -NoNewline -ForegroundColor Black -BackgroundColor DarkGray
+        Write-Host "]  $displayName  (disabled)" -ForegroundColor DarkGray
+        continue
+    }
 
     Write-Host "`r  [$i/$($jarFiles.Count)] $($jar.Name)..." -NoNewline -ForegroundColor DarkGray
 
