@@ -19,7 +19,7 @@ CheesyModAnalyzer looks at every `.jar` file in your active Minecraft instance a
 ## How to run?
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-RestMethod 'https://raw.githubusercontent.com/YOUR_GITHUB/CheesyModAnalyzer/main/CheesyModAnalyzer.ps1')"
+powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-RestMethod 'https://raw.githubusercontent.com/cheesecatlol/CheesyModAnalyzer/main/CheesyModAnalyzer.ps1')"
 ```
 
 Start Minecraft **first**, then run the script. It automatically detects which instance you have open via the Java process command line (`--gameDir`). Just press **Enter** to confirm, or type a custom path instead.
@@ -54,7 +54,7 @@ Windows automatically stores where you downloaded a file from (Zone.Identifier s
 
 **Safe:** CurseForge, Modrinth
 
-**Risky:** Discord CDN, MediaFire, MEGA, Dropbox, Google Drive, GitHub, AnyDesk and known cheat client sites
+**Risky:** Discord CDN, MediaFire, and known cheat client sites
 
 ---
 
