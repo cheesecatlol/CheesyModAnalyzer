@@ -1,85 +1,90 @@
-# CheesyModAnalyzer
-CMD script to analyze Minecraft mods and identify potential cheat mod clients.
+# 🧀 CheesyModAnalyzer
 
-## Installation
+> A PowerShell tool that scans your Minecraft mods for suspicious patterns, cheat clients and unknown files.
+
+---
+
+## What does it do?
+
+CheesyModAnalyzer looks at every `.jar` file in your active Minecraft instance and assigns one of three labels:
+
+| Label | Meaning |
+|-------|---------|
+| ✅ VERIFIED | Found in an official database = safe |
+| ❓ UNKNOWN | Not found but no suspicious patterns either |
+| 🚨 SUSPICIOUS | Contains strings linked to cheat clients |
+
+---
+
+## How to run?
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-RestMethod 'https://raw.githubusercontent.com/cheesecatlol/CheesyModAnalyzer/main/CheesyModAnalyzer.ps1')"
+powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-RestMethod 'https://raw.githubusercontent.com/YOUR_GITHUB/CheesyModAnalyzer/main/CheesyModAnalyzer.ps1')"
 ```
 
-## Usage
-Open command prompt with admin and paste the script in.
+Start Minecraft **first**, then run the script. It automatically detects which instance you have open via the Java process command line (`--gameDir`). Just press **Enter** to confirm, or type a custom path instead.
 
-On startup, the script automatically detects the active Minecraft instance:
+---
 
-* If Minecraft is **running**, it reads the Java process command line to find the exact instance folder and pre-selects it — just press **Enter** to confirm
-* If Minecraft is **not running** or the path cannot be detected, enter a custom path manually
+## How does the scan work?
 
-## How It Works
+### Step 1 — SHA-1 verification
 
-### Phase 1: Database Verification
+A SHA-1 hash is calculated for every `.jar`. That hash is checked against:
 
-The script calculates the SHA1 hash of each JAR file and compares it with official databases:
+- **Modrinth** `api.modrinth.com/v2/version_file/{hash}` — largest database of legitimate mods
+- **Megabase** `megabase.vercel.app/api/query?hash={hash}` — fallback database if Modrinth finds nothing
 
-**Modrinth API** `https://api.modrinth.com/v2/version_file/{hash}`
-* Main database of verified mods
-* Returns project name and slug if found
+If the hash matches, the mod is marked **VERIFIED** and the scan stops there.
 
-**Megabase API** `https://megabase.vercel.app/api/query?hash={hash}`
-* Alternative database for known mods
-* Backup in case Modrinth doesn't find matches
+### Step 2 — Content analysis
 
-Found mods are classified as **VERIFIED**.
+If a mod isn't recognized, the JAR is opened as a zip and the following are checked:
 
-### Phase 2: Pattern Analysis
+- File names and paths inside the JAR
+- Text inside `.json`, `.toml`, `.cfg`, `.properties` and `MANIFEST.MF`
+- Bytecode of `.class` files (ASCII strings)
+- Hidden URLs inside configs
+- Suspicious reflection / runtime exec calls
+- Obfuscation techniques (short paths like `a/b/c/`, single-char class names, Japanese/Chinese characters)
 
-For unverified mods, the script:
+### Step 3 — Download source
 
-1. Extracts JAR file contents using `System.IO.Compression.ZipFile`
-2. Analyzes internal file names and paths
-3. Reads content of `.class`, `.json`, `.toml`, `.cfg`, `.properties`, and `MANIFEST.MF` files
-4. Searches for suspicious patterns via regex matching
-5. Detects obfuscation techniques (short path names, single-char class names, Japanese/Chinese characters)
+Windows automatically stores where you downloaded a file from (Zone.Identifier stream). The script reads this and flags downloads from risky sources.
 
-### Download Source Tracking
+**Safe:** CurseForge, Modrinth
 
-The script reads Windows' `Zone.Identifier` stream (Alternate Data Stream) to identify where the mod was downloaded from.
+**Risky:** Discord CDN, MediaFire, MEGA, Dropbox, Google Drive, GitHub, AnyDesk and known cheat client sites
 
-## Detected Cheat Patterns
+---
 
-The script contains over 100 patterns associated with cheat clients:
+## What gets detected?
 
-**Obfuscated patterns:**
-* Package `org.chainlibs.module.impl.modules.*`
-* Classes with Japanese/Chinese characters (`じ.class`, `ふ.class`, etc.)
-* Suspicious mixins: `KeyboardMixin`, `ClientPlayerInteractionManagerMixin`, `LicenseCheckMixin`
-* Files: `phantom-refmap.json`, `xyz.greaj`
-* Libraries: `jnativehook`, `imgui`, `imgui.gl3`, `imgui.glfw`
-* Runtime command execution, suspicious reflection, unexpected network calls
+Over 100 patterns across multiple categories:
 
-And more patterns...
+- **Combat cheats** — KillAura, AimAssist, AutoCrystal, Reach, TriggerBot, Velocity, ...
+- **Movement cheats** — Flight, NoFall, Phase, Scaffold, Timer, Bhop, ...
+- **PvP automation** — AutoTotem, AutoPot, AutoArmor, FakeLag, Blink, PopSwitch, ...
+- **Visual cheats** — ESP, XRay, Wallhack, Freecam, FullBright, Tracers, ...
+- **Known clients** — Wurst, Meteor, LiquidBounce, Sigma, Flux, Vape, Aristois, ...
+- **Malware strings** — TokenGrabber, Backdoor, Stealer, webhook URLs, HWID checks
+- **Obfuscation libs** — Allatori, ZKM, Stringer, jnativehook, imgui, chainlibs, ...
+- **Suspicious mixins** — KeyboardMixin, LicenseCheckMixin, ClientPlayerInteractionManagerMixin
 
-## Output
+Including fullwidth unicode variants of all the above (Ａｕｔｏ Ｃｒｙｓｔａｌ, etc.)
 
-The script categorizes mods into three groups:
+---
 
-**✅ VERIFIED MODS** — Mods found in official databases, considered safe.
+## Requirements
 
-**❓ UNKNOWN MODS** — Mods not present in databases but without suspicious patterns. Shows download source when available.
+- Windows
+- PowerShell 5.1 or higher
+- Internet connection (for database lookups)
 
-**🚨 SUSPICIOUS MODS** — Mods containing one or more patterns associated with cheats. Lists all detected patterns with explanations for each mod.
+---
 
-## Additional Information
+## Contact
 
-If Minecraft is running, the script displays:
-* Process name (`java` / `javaw`)
-* Process PID
-* Startup timestamp
-* Current uptime
-* Active instance path (auto-detected from the process command line)
-
-## Contacts
-
-Discord: `cheese_cat0`  
-GitHub: [cheesecatlol](https://github.com/cheesecatlol)  
+Discord: `cheese_cat0`
+GitHub: [cheesecatlol](https://github.com/cheesecatlol)
 
