@@ -518,7 +518,7 @@ if ($suspicious.Count -gt 0) {
     Write-Host "  Download mods only from CurseForge or Modrinth when possible." -ForegroundColor DarkGray
 } else {
     Write-Host "  " -NoNewline
-    Write-Host " CHEESE BOARD CLEAN " -ForegroundColor Black -BackgroundColor DarkGreen
+    Write-Host " ALL MODS CLEAN " -ForegroundColor Black -BackgroundColor DarkGreen
     Write-Host ""
     Write-Host "  All $($verified.Count) mod(s) verified. No suspicious patterns detected." -ForegroundColor Green
 }
