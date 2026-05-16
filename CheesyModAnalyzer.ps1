@@ -103,23 +103,121 @@ function Write-DetailLine([string]$Key, [string]$Value, [ConsoleColor]$ValueColo
 # ================================================================
 
 $SuspiciousPatterns = @(
+    # Combat
     "AimAssist","AutoCrystal","AutoHitCrystal","TriggerBot","Velocity","Criticals",
     "Reach","Hitboxes","ShieldBreaker","ShieldDisabler","AxeSpam","KillAura",
     "BowAimbot","CrystalAura","SurroundBreaker","HoleSnap","BedAura",
+    "MultiAura","ForceField","Aimbot","AntiBot","Regen","AntiAntiCheat",
+    "ClickAura","Derp","HeadRoll","LongJump",
+    # Movement
     "Flight","Antiknockback","NoKnockback","JumpReset","SprintReset","NoJumpDelay",
     "Scaffold","Tower","Jesus","Dolphin","BoatFly","ElytraFly","Phase","Clip",
     "NoFall","NoSlow","Timer","Strafe","LegitScaffold","FastBridge",
+    "Glide","Spider","WallClimb","Bhop","BunnyHop","AirJump",
+    "FastLadder","NoWeb","IceSpeed","SafeWalk","EdgeSnap",
+    # Automation
     "AutoTotem","AutoArmor","AutoPot","AutoDoubleHand","InventoryTotem","TotemHit",
     "PopSwitch","LagReach","Wtap","FakeLag","Blink","PacketFly",
+    "AutoFish","AutoSprint","AutoRespawn","AutoTool","AutoSword","AutoBow",
+    "AutoDrop","AutoFarm","AutoWalk","AutoSneak",
+    # Visual / ESP
     "BlockESP","Freecam","PackSpoof","PingSpoof","FakeNick","FakeItem",
     "ESP","Tracers","ChestESP","PlayerESP","Wallhack","FullBright","XRay",
+    "StorageESP","MobESP","ItemESP","HoleESP","ArmorESP","HealthTags",
+    "CaveFinder","NameTags","Nametags",
+    # World
     "FastPlace","ChestSteal","Refill","AutoEat","AutoMine","AutoClicker","FastXP",
-    "Nuker","AutoSign","AutoBuild","Printer",
+    "Nuker","AutoSign","AutoBuild","Printer","InvMove","InventoryMove",
+    "NoRender","AntiHunger","NameProtect",
+    # Known clients / packages
     "Asteria","Prestige","Xenon","Argon","Hellion","Virgin","Donut","Krypton",
-    "dev.krypton","dev.gambleclient","Grim","PrestigeClient","DoomsdayClient",
-    "198Macros","Backdoor","TokenGrabber","Stealer",
+    "dev.krypton","dev.gambleclient","PrestigeClient","DoomsdayClient",
+    "Wurst","Sigma","LiquidBounce","Meteor","Ares","Salhack",
+    "Nodus","Flux","Entropy","Impact","Wolfram","Future",
+    "Aristois","Vape","Freezer","Drip","Tenacity","Clamour",
+    # Malicious / backdoor
+    "198Macros","Backdoor","TokenGrabber","Stealer","Keylogger",
+    "sendWebhook","grabToken","stealToken","getPassword",
+    "discord/webhook","webhooks/",
+    # Obfuscation / injection libraries
     "chainlibs","phantom-refmap","xyz.greaj","jnativehook","imgui",
-    "KeyboardMixin","ClientPlayerInteractionManagerMixin","LicenseCheckMixin"
+    "KeyboardMixin","ClientPlayerInteractionManagerMixin","LicenseCheckMixin",
+    "Allatori","ZKM","Stringer","Branchlock","Caesium",
+    "me/zero/client","me/rigamortis","net/ccbluex","io/github/nevalackin",
+    # Crystal / Anchor
+    "autocrystal","auto crystal","cw crystal","dontPlaceCrystal","dontBreakCrystal",
+    "canPlaceCrystalServer","healPotSlot","autoCrystalPlaceClock",
+    "AutoAnchor","autoanchor","auto anchor","DoubleAnchor","HasAnchor",
+    "anchortweaks","anchor macro","safe anchor","safeanchor","SafeAnchor","AirAnchor",
+    "anchorMacro","LWFH Crystal","AutoBreach","NoBounce","EndCrystalItemMixin",
+    # Totem / Pot / Armor
+    "autototem","auto totem","inventorytotem","HoverTotem","hover totem","legittotem",
+    "autopot","auto pot","speedPotSlot","strengthPotSlot","autoarmor","auto armor",
+    "AutoPotRefill","AutoMace","MaceSwap","SpearSwap","StunSlam",
+    # Shield
+    "preventSwordBlockBreaking","preventSwordBlockAttack",
+    "Breaking shield with axe...","ShieldDisabler",
+    # Aim / Rotations
+    "aimassist","aim assist","triggerbot","trigger bot",
+    "SilentRotations","Silent Rotations","SmoothRotations","Smooth Rotations",
+    "Rotation Speed","Use Easing","Easing Strength",
+    # Lag / Spoof
+    "pingspoof","ping spoof","FakeLag","fakePunch","Fake Punch","FakeInv","swapBackToOriginalSlot",
+    # Web
+    "webmacro","web macro","AntiWeb","AutoWeb","Places Webs On Enemies",
+    # Misc cheat features
+    "AutoDoubleHand","autodoublehand","auto double hand",
+    "AutoClicker","AutoFirework","ElytraSwap","ElytraSwap","FastXP","FastExp",
+    "PackSpoof","Antiknockback","catlean","AuthBypass","obfuscatedAuth",
+    "BaseFinder","invsee","ItemExploit","FreezePlayer","KeyPearl","LootYeeter",
+    "setBlockBreakingCooldown","getBlockBreakingCooldown","blockBreakingCooldown",
+    "onBlockBreaking","setItemUseCooldown","setSelectedSlot",
+    "invokeDoAttack","invokeDoItemUse","invokeOnMouseButton",
+    "onPushOutOfBlocks","onIsGlowing","findKnockbackSword","attackRegisteredThisClick",
+    "axespam","axe spam","selfdestruct","self destruct",
+    "lvstrng","dqrkis","Dqrkis Client","POT_CHEATS","arrayOfString",
+    "WalksyCrystalOptimizerMod","WalksyOptimizer","WalskyOptimizer","autoCrystalPlaceClock",
+    "Automatically switches to sword when hitting with totem",
+    "Failed to switch to mace after axe!",
+    # Config-style option strings (used inside cheat GUIs)
+    "Place Delay","Break Delay","Fast Mode","Place Chance","Break Chance",
+    "Stop On Kill","Damage Tick","damagetick","Anti Weakness","Particle Chance",
+    "Trigger Key","Switch Delay","Totem Slot","Glowstone Delay","Glowstone Chance",
+    "Explode Delay","Explode Chance","Explode Slot","Only Charge","Reach Distance",
+    "Min Height","Min Fall Speed","Attack Delay","Breach Delay","Require Elytra",
+    "Activate Key","Click Simulation","On RMB","No Count Glitch",
+    "No Bounce","Place blocks faster","Anchor Macro",
+    # Fullwidth obfuscated variants
+    "ＡｕｔｏＣｒｙｓｔａｌ","Ａｕｔｏ Ｃｒｙｓｔａｌ","ＡｕｔｏＨｉｔＣｒｙｓｔａｌ",
+    "ＡｕｔｏＡｎｃｈｏｒ","Ａｕｔｏ Ａｎｃｈｏｒ","ＤｏｕｂｌｅＡｎｃｈｏｒ","Ｄｏｕｂｌｅ Ａｎｃｈｏｒ",
+    "ＳａｆｅＡｎｃｈｏｒ","Ｓａｆｅ Ａｎｃｈｏｒ","Ａｎｃｈｏｒ Ｍａｃｒｏ",
+    "ＡｕｔｏＴｏｔｅｍ","Ａｕｔｏ Ｔｏｔｅｍ","ＨｏｖｅｒＴｏｔｅｍ","Ｈｏｖｅｒ Ｔｏｔｅｍ",
+    "ＩｎｖｅｎｔｏｒｙＴｏｔｅｍ","Ａｕｔｏ Ｉｎｖｅｎｔｏｒｙ Ｔｏｔｅｍ","Ａｕｔｏ Ｔｏｔｅｍ Ｈｉｔ",
+    "ＡｕｔｏＰｏｔ","Ａｕｔｏ Ｐｏｔ","Ａｕｔｏ Ｐｏｔ Ｒｅｆｉｌｌ","ＡｕｔｏＡｒｍｏｒ","Ａｕｔｏ Ａｒｍｏｒ",
+    "ＳｈｉｅｌｄＤｉｓａｂｌｅｒ","Ｓｈｉｅｌｄ Ｄｉｓａｂｌｅｒ",
+    "ＡｕｔｏＤｏｕｂｌｅＨａｎｄ","Ａｕｔｏ Ｄｏｕｂｌｅ Ｈａｎｄ","ＡｕｔｏＣｌｉｃｋｅｒ",
+    "ＡｕｔｏＭａｃｅ","Ａｕｔｏ Ｍａｃｅ","ＭａｃｅＳｗａｐ","Ｍａｃｅ Ｓｗａｐ","Ｓｐｅａｒ Ｓｗａｐ",
+    "Ａｕｔｏｍａｔｉｃａｌｌｙ ａｘｅ ａｎｄ ｍａｃｅ ｓｈｉｅｌｄｅｄ ｐｌａｙｅｒｓ","Ｓｔｕｎ Ｓｌａｍ",
+    "ＡｉｍＡｓｓｉｓｔ","Ａｉｍ Ａｓｓｉｓｔ","ＴｒｉｇｇｅｒＢｏｔ","Ｔｒｉｇｇｅｒ Ｂｏｔ",
+    "Ｓｉｌｅｎｔ Ｒｏｔａｔｉｏｎｓ","Ｓｍｏｏｔｈ Ｒｏｔａｔｉｏｎｓ",
+    "ＦａｋｅＬａｇ","Ｆａｋｅ Ｌａｇ","Ｆａｋｅ Ｐｕｎｃｈ",
+    "Ａｎｔｉ Ｗｅｂ","ＡｕｔｏＷｅｂ","Ｐｌａｃｅｓ Ｗｅｂｓ Ｏｎ Ｅｎｅｍｉｅｓ",
+    "Ｗａｌｋｓｙ Ｏｐｔｉｍｉｚｅｒ","ＥｌｙｔｒａＳｗａｐ","Ｅｌｙｔｒａ Ｓｗａｐ",
+    "Ｆｒｅｅｃａｍ","Ｍｏｖｅ ｆｒｅｅｌｙ ｔｈｒｏｕｇｈ ｗａｌｌｓ","Ｎｏ Ｃｌｉｐ","Ｆｒｅｅｚｅ Ｐｌａｙｅｒ",
+    "ＬＷＦＨ Ｃｒｙｓｔａｌ","ＫｅｙＰｅａｒｌ","Ｋｅｙ Ｐｅａｒｌ","Ｌｏｏｔ Ｙｅｅｔｅｒ",
+    "Ｆａｓｔ Ｐｌａｃｅ","Ｐｌａｃｅ ｂｌｏｃｋｓ ｆａｓｔｅｒ","Ａｕｔｏ Ｂｒｅａｃｈ",
+    "Ｄａｍａｇｅ Ｔｉｃｋ","Ａｎｔｉ Ｗｅａｋｎｅｓｓ","Ｐａｒｔｉｃｌｅ Ｃｈａｎｃｅ",
+    "Ｔｒｉｇｇｅｒ Ｋｅｙ","Ｓｗｉｔｃｈ Ｄｅｌａｙ","Ｔｏｔｅｍ Ｓｌｏｔ",
+    "Ｓｉｌｅｎｔ Ｒｏｔａｔｉｏｎｓ","Ｓｍｏｏｔｈ Ｒｏｔａｔｉｏｎｓ","Ｒｏｔａｔｉｏｎ Ｓｐｅｅｄ",
+    "Ｕｓｅ Ｅａｓｉｎｇ","Ｅａｓｉｎｇ Ｓｔｒｅｎｇｔｈ","Ｗｈｉｌｅ Ｕｓｅ","Ｓｔｏｐ ｏｎ Ｋｉｌｌ",
+    "Ｃｌｉｃｋ Ｓｉｍｕｌａｔｉｏｎ","Ｇｌｏｗｓｔｏｎｅ Ｄｅｌａｙ","Ｇｌｏｗｓｔｏｎｅ Ｃｈａｎｃｅ",
+    "Ｅｘｐｌｏｄｅ Ｄｅｌａｙ","Ｅｘｐｌｏｄｅ Ｃｈａｎｃｅ","Ｅｘｐｌｏｄｅ Ｓｌｏｔ","Ｏｎｌｙ Ｃｈａｒｇｅ",
+    "Ａｎｃｈｏｒ Ｍａｃｒｏ","Ｒｅａｃｈ Ｄｉｓｔａｎｃｅ","Ｍｉｎ Ｈｅｉｇｈｔ","Ｍｉｎ Ｆａｌｌ Ｓｐｅｅｄ",
+    "Ａｔｔａｃｋ Ｄｅｌａｙ","Ｂｒｅａｃｈ Ｄｅｌａｙ","Ｒｅｑｕｉｒｅ Ｅｌｙｔｒａ",
+    "Ａｃｔｉｖａｔｅ Ｋｅｙ","Ｃｌｉｃｋ Ｓｉｍｕｌａｔｉｏｎ","Ｏｎ ＲＭＢ","Ｎｏ Ｃｏｕｎｔ Ｇｌｉｔｃｈ",
+    "Ｎｏ Ｂｏｕｎｃｅ","ＮｏＢｏｕｎｃｅ","Ｒｅｍｏｖｅｓ ｔｈｅ ｃｒｙｓｔａｌ ｂｏｕｎｃｅ ａｎｉｍａｔｉｏｎ",
+    "Ｐｌａｃｅ Ｄｅｌａｙ","Ｂｒｅａｋ Ｄｅｌａｙ","Ｆａｓｔ Ｍｏｄｅ","Ｐｌａｃｅ Ｃｈａｎｃｅ","Ｂｒｅａｋ Ｃｈａｎｃｅ",
+    "Ｓｔｏｐ Ｏｎ Ｋｉｌｌ","Ｄｑｒｋｉｓ Ｃｌｉｅｎｔ"
 )
 
 $JapaneseRegex = [regex]"[\u3040-\u309F\u30A0-\u30FF]"
@@ -189,30 +287,139 @@ function Invoke-MegabaseLookup([string]$Hash) {
 
 function Invoke-JarScan([string]$FilePath) {
     $found = [System.Collections.Generic.List[string]]::new()
+
+    # helpers
+    function Add-Flag([string]$flag) { if ($found -notcontains $flag) { [void]$found.Add($flag) } }
+
     try {
-        $zip = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
-        foreach ($entry in $zip.Entries) {
-            $name = $entry.FullName
-            foreach ($p in $SuspiciousPatterns) {
-                if ($name -match [regex]::Escape($p) -and $found -notcontains $p) { [void]$found.Add($p) }
+        $zip     = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
+        $entries = $zip.Entries
+
+        # ── collect all class paths for structural analysis ──────
+        $classPaths   = $entries | Where-Object { $_.FullName -like "*.class" } | ForEach-Object { $_.FullName }
+        $totalClasses = $classPaths.Count
+
+        # ── 1. SHORT PATH OBFUSCATION ────────────────────────────
+        # Detects a/b/Foo.class  or  a/b/c/d/Foo.class style hiding
+        $shortPathCount = ($classPaths | Where-Object {
+            $parts = $_.Split('/')
+            # 2-5 path segments where every directory segment is 1-2 chars
+            $parts.Count -ge 3 -and $parts.Count -le 6 -and
+            ($parts[0..($parts.Count-2)] | Where-Object { $_.Length -gt 2 }).Count -eq 0
+        }).Count
+        if ($totalClasses -gt 10 -and $shortPathCount / [Math]::Max($totalClasses,1) -gt 0.4) {
+            Add-Flag "Short-path obfuscation (a/b/c/ structure)"
+        }
+
+        # ── 2. HIGH RATIO OF SINGLE-CHAR CLASS NAMES ────────────
+        $singleCharClasses = ($classPaths | Where-Object {
+            $name = [System.IO.Path]::GetFileNameWithoutExtension($_)
+            $name.Length -le 2
+        }).Count
+        if ($totalClasses -gt 10 -and $singleCharClasses / [Math]::Max($totalClasses,1) -gt 0.5) {
+            Add-Flag "Single-char class names (heavy obfuscation)"
+        }
+
+        # ── 3. NESTED JAR / CLASS INSIDE JAR ────────────────────
+        $nestedJars = $entries | Where-Object { $_.FullName -like "*.jar" -and $_.FullName -notlike "META-INF/*" }
+        foreach ($nj in $nestedJars) {
+            Add-Flag "Nested JAR: $($nj.FullName)"
+        }
+
+        # ── 4. SUSPICIOUS PACKAGE ROOTS ─────────────────────────
+        $suspiciousRoots = @("me/zero","me/alpha","io/github/nevalackin","wtf/zroger",
+            "me/rigamortis","net/ccbluex","me/hwnd","xyz/qalcyo","me/odinaka",
+            "dev/luna","me/stars","wtf/harvest","gg/essential/loader/stage0")
+        foreach ($entry in $entries) {
+            foreach ($root in $suspiciousRoots) {
+                if ($entry.FullName -like "$root/*") { Add-Flag "Suspicious package: $root" }
             }
-            if ($JapaneseRegex.IsMatch($name) -and $found -notcontains "Japanese obfuscation") { [void]$found.Add("Japanese obfuscation") }
+        }
+
+        # ── 5. PER-ENTRY PATTERN + OBFUSCATION SCAN ─────────────
+        foreach ($entry in $entries) {
+            $name = $entry.FullName
+
+            # known string patterns in file paths
+            foreach ($p in $SuspiciousPatterns) {
+                if ($name -match [regex]::Escape($p)) { Add-Flag $p }
+            }
+
+            # Japanese/Chinese obfuscation in class names
+            if ($JapaneseRegex.IsMatch($name)) { Add-Flag "Japanese obfuscation" }
+            if ([regex]::IsMatch($name, "[\u4E00-\u9FFF]")) { Add-Flag "Chinese obfuscation" }
+
+            # ── 6. READ TEXT FILES FOR STRING MATCHES ───────────
             $ext = [System.IO.Path]::GetExtension($name).ToLower()
-            if (($ext -in @(".json",".txt",".toml",".cfg")) -or ($name -match "MANIFEST\.MF")) {
-                if ($entry.Length -lt 1MB) {
+            if (($ext -in @(".json",".txt",".toml",".cfg",".properties")) -or ($name -match "MANIFEST\.MF")) {
+                if ($entry.Length -lt 2MB) {
                     try {
                         $stream = $entry.Open()
                         $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8, $true)
                         $text   = $reader.ReadToEnd()
                         $reader.Close(); $stream.Close()
+
                         foreach ($p in $SuspiciousPatterns) {
-                            if ($text -match [regex]::Escape($p) -and $found -notcontains $p) { [void]$found.Add($p) }
+                            if ($text -match [regex]::Escape($p)) { Add-Flag $p }
                         }
-                        if ($JapaneseRegex.IsMatch($text) -and $found -notcontains "Japanese obfuscation") { [void]$found.Add("Japanese obfuscation") }
+                        if ($JapaneseRegex.IsMatch($text))                         { Add-Flag "Japanese obfuscation" }
+                        if ([regex]::IsMatch($text, "[\u4E00-\u9FFF]"))            { Add-Flag "Chinese obfuscation" }
+
+                        # ── 7. SUSPICIOUS URLS IN CONFIG/MANIFEST ───────────
+                        $suspiciousUrlPatterns = @(
+                            "cdn\.discordapp\.com","anonfiles\.com","gofile\.io",
+                            "transfer\.sh","file\.io","temp\.sh","pastecord\.com",
+                            "hastebin\.com","paste\.gg","api\.myip","checkip\.",
+                            "ipinfo\.io","ipapi\.co"
+                        )
+                        foreach ($urlPat in $suspiciousUrlPatterns) {
+                            if ($text -match $urlPat) { Add-Flag "Suspicious URL in config: $urlPat" }
+                        }
+
+                        # ── 8. LICENSE / HWID CHECK STRINGS ─────────────────
+                        $licenseStrings = @("hwid","HWID","hardware.id","LicenseKey",
+                            "licensecheck","validateLicense","checkLicense","activation")
+                        foreach ($ls in $licenseStrings) {
+                            if ($text -match [regex]::Escape($ls)) { Add-Flag "License/HWID check detected" ; break }
+                        }
+
                     } catch {}
                 }
             }
+
+            # ── 9. SCAN CLASS BYTECODE FOR STRINGS ──────────────
+            if ($ext -eq ".class" -and $entry.Length -lt 512KB) {
+                try {
+                    $stream  = $entry.Open()
+                    $ms      = [System.IO.MemoryStream]::new()
+                    $stream.CopyTo($ms)
+                    $stream.Close()
+                    $bytes   = $ms.ToArray()
+                    $ms.Dispose()
+
+                    # extract readable ASCII strings from bytecode (len >= 5)
+                    $ascii  = [System.Text.Encoding]::ASCII.GetString($bytes)
+
+                    foreach ($p in $SuspiciousPatterns) {
+                        if ($ascii -match [regex]::Escape($p)) { Add-Flag $p }
+                    }
+
+                    # runtime exec / reflection abuse
+                    if ($ascii -match "Runtime\.exec|ProcessBuilder|cmd\.exe|/bin/sh") {
+                        Add-Flag "Runtime command execution"
+                    }
+                    if ($ascii -match "Class\.forName|getDeclaredMethod|setAccessible") {
+                        Add-Flag "Suspicious reflection usage"
+                    }
+                    # network calls inside class
+                    if ($ascii -match "HttpURLConnection|OkHttpClient|URLConnection" -and
+                        $ascii -notmatch "modrinth|curseforge|fabricmc|quiltmc") {
+                        Add-Flag "Unexpected network call in class"
+                    }
+                } catch {}
+            }
         }
+
         $zip.Dispose()
     } catch {
         Write-Host ""
