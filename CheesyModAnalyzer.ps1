@@ -34,13 +34,12 @@ function Write-Banner {
 
     $lines = @(
         "                                                                    ",
-        "    ____ _  _ ____ ____ ____ _   _    _  _ ____ ____               ",
-        "    |    |__| |___ |___ [__   \_/     |\/| |  | |  \               ",
-        "    |___ |  | |___ |___ ___]   |      |  | |__| |__/               ",
-        "                                                                    ",
-        "    ____ _  _ ____ _    _   _ ____  ____ ____                      ",
-        "    |__| |\ | |__| |     \_/  [__   |___ |__/                      ",
-        "    |  | | \| |  | |___   |   ___]  |___ |  \                      ",
+        "   =====================================================            ",
+        "   ||                                                 ||            ",
+        "   ||    o  CHEESY MOD ANALYZER                       ||            ",
+        "   ||       by cheese cat                             ||            ",
+        "   ||                                                 ||            ",
+        "   =====================================================            ",
         "                                                                    "
     )
 
@@ -49,14 +48,6 @@ function Write-Banner {
         Start-Sleep -Milliseconds 25
     }
 
-    Write-Host ""
-    Write-Host "  " -NoNewline
-    Write-Host "  SHA-1 Verification  " -NoNewline -ForegroundColor Black -BackgroundColor Yellow
-    Write-Host "  " -NoNewline
-    Write-Host "  Pattern Detection  " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
-    Write-Host "  " -NoNewline
-    Write-Host "  Source Tracking  " -ForegroundColor Black -BackgroundColor DarkGray
-    Write-Host ""
     Write-Host "  " -NoNewline
     Write-Host "  o O o O o  [ Made by cheese cat ]  o O o O o  " -ForegroundColor DarkYellow
     Write-Host ""
@@ -448,14 +439,14 @@ if ($procs) {
     Write-Host ""
 }
 
-# ── Auto-detect mod folders ────────────────────────────────────
+# ── Build full list of all known mod folders ───────────────────
 $detectedFolders = [System.Collections.Generic.List[hashtable]]::new()
 
 # Vanilla / Forge / Fabric
 $vanillaPath = Join-Path $env:APPDATA ".minecraft\mods"
 if (Test-Path $vanillaPath) { $detectedFolders.Add(@{ Label = "Vanilla/Fabric/Forge"; Path = $vanillaPath }) }
 
-# CurseForge (two possible install locations)
+# CurseForge
 $cfBases = @(
     (Join-Path $env:USERPROFILE "curseforge\minecraft\Instances"),
     (Join-Path $env:USERPROFILE "Documents\curseforge\minecraft\Instances"),
@@ -486,7 +477,7 @@ foreach ($mrBase in $modrinthBases) {
     }
 }
 
-# Prism Launcher (all known paths including portable and ATLauncher-style)
+# Prism Launcher
 $prismBases = @(
     (Join-Path $env:APPDATA "PrismLauncher\instances"),
     (Join-Path $env:LOCALAPPDATA "PrismLauncher\instances"),
@@ -496,7 +487,6 @@ $prismBases = @(
 foreach ($prismBase in $prismBases) {
     if (Test-Path $prismBase) {
         Get-ChildItem -Path $prismBase -Directory | ForEach-Object {
-            # Prism stores mods in <instance>/.minecraft/mods
             $mp = Join-Path $_.FullName ".minecraft\mods"
             if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "Prism: $($_.Name)"; Path = $mp }) }
         }
@@ -526,39 +516,120 @@ foreach ($mmcBase in $mmcBases) {
     }
 }
 
-# Show detected folders
-Write-Host "  Detected mod folders:" -ForegroundColor DarkGray
-Write-Host ""
-if ($detectedFolders.Count -gt 0) {
-    for ($n = 0; $n -lt $detectedFolders.Count; $n++) {
-        Write-Host "  " -NoNewline
-        Write-Host " $($n+1) " -NoNewline -ForegroundColor Black -BackgroundColor Yellow
-        Write-Host "  $($detectedFolders[$n].Label)" -NoNewline -ForegroundColor White
-        Write-Host "  $($detectedFolders[$n].Path)" -ForegroundColor DarkGray
+# ── Try to find the ACTIVE instance from the running Java process ──
+$autoFolder = $null
+$autoLabel  = $null
+
+if ($procs) {
+    foreach ($proc in $procs) {
+        try {
+            # Read the full command line of the java process via WMI
+            $wmi = Get-WmiObject Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction SilentlyContinue
+            $cmdLine = if ($wmi) { $wmi.CommandLine } else { "" }
+
+            # Walk all known folders and see which one is a parent of the working dir / command line
+            foreach ($folder in $detectedFolders) {
+                $normalized = $folder.Path.TrimEnd('\').ToLower()
+                if ($cmdLine -and $cmdLine.ToLower() -like "*$normalized*") {
+                    $autoFolder = $folder.Path
+                    $autoLabel  = $folder.Label
+                    break
+                }
+            }
+
+            # Fallback: check the process working directory
+            if (-not $autoFolder) {
+                $workDir = $wmi.ExecutablePath
+                foreach ($folder in $detectedFolders) {
+                    $normalized = $folder.Path.TrimEnd('\').ToLower()
+                    if ($workDir -and $workDir.ToLower() -like "*$normalized*") {
+                        $autoFolder = $folder.Path
+                        $autoLabel  = $folder.Label
+                        break
+                    }
+                }
+            }
+
+            # Fallback: match the instance via -Dminecraft.appDir or --gameDir in the command line
+            if (-not $autoFolder -and $cmdLine) {
+                $gameDirMatch = [regex]::Match($cmdLine, '(?:--gameDir|-Dminecraft\.appDir=)([^\s"]+)')
+                if ($gameDirMatch.Success) {
+                    $gameDir = $gameDirMatch.Groups[1].Value.Trim('"')
+                    $candidate = Join-Path $gameDir "mods"
+                    if (Test-Path $candidate) {
+                        # See if it matches a known folder label
+                        $match = $detectedFolders | Where-Object { $_.Path -eq $candidate } | Select-Object -First 1
+                        $autoFolder = $candidate
+                        $autoLabel  = if ($match) { $match.Label } else { "Active Instance" }
+                        # Add to list if not already present
+                        if (-not $match) {
+                            $detectedFolders.Insert(0, @{ Label = $autoLabel; Path = $autoFolder })
+                        }
+                    }
+                }
+            }
+        } catch {}
+        if ($autoFolder) { break }
     }
-    Write-Host ""
-    Write-Host "  Enter a number to select, or type a custom path:" -ForegroundColor DarkGray
-} else {
-    Write-Host "  No mod folders detected automatically." -ForegroundColor DarkYellow
-    Write-Host "  Enter a custom path:" -ForegroundColor DarkGray
 }
 
-Write-Host ""
-$userInput = Read-Host "  Choice"
+# ── Display & selection ────────────────────────────────────────
+if ($autoFolder) {
+    # An active instance was found — highlight it and offer to use it immediately
+    Write-Host "  " -NoNewline
+    Write-Host " ACTIVE INSTANCE DETECTED " -ForegroundColor Black -BackgroundColor Yellow
+    Write-Host ""
+    Write-Host "  " -NoNewline
+    Write-Host " >> " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
+    Write-Host "  $autoLabel" -NoNewline -ForegroundColor Yellow
+    Write-Host "  " -NoNewline
+    Write-Host $autoFolder -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Press " -NoNewline -ForegroundColor DarkGray
+    Write-Host "Enter" -NoNewline -ForegroundColor Yellow
+    Write-Host " to scan this instance, or type a custom path:" -ForegroundColor DarkGray
+    Write-Host ""
+    $userInput = Read-Host "  Choice"
 
-if ($userInput -match '^\d+$') {
-    $idx = [int]$userInput - 1
-    if ($idx -ge 0 -and $idx -lt $detectedFolders.Count) {
-        $modsPath = $detectedFolders[$idx].Path
+    if ([string]::IsNullOrWhiteSpace($userInput)) {
+        $modsPath = $autoFolder
     } else {
-        Write-Host "  [ERROR] Invalid number." -ForegroundColor Red
-        Read-Host "  Press Enter to exit"
-        exit 1
+        $modsPath = $userInput.Trim()
     }
-} elseif ([string]::IsNullOrWhiteSpace($userInput) -and $detectedFolders.Count -gt 0) {
-    $modsPath = $detectedFolders[0].Path
 } else {
-    $modsPath = $userInput.Trim()
+    # No active instance — fall back to showing the full numbered list
+    Write-Host "  Detected mod folders:" -ForegroundColor DarkGray
+    Write-Host ""
+    if ($detectedFolders.Count -gt 0) {
+        for ($n = 0; $n -lt $detectedFolders.Count; $n++) {
+            Write-Host "  " -NoNewline
+            Write-Host " $($n+1) " -NoNewline -ForegroundColor Black -BackgroundColor Yellow
+            Write-Host "  $($detectedFolders[$n].Label)" -NoNewline -ForegroundColor White
+            Write-Host "  $($detectedFolders[$n].Path)" -ForegroundColor DarkGray
+        }
+        Write-Host ""
+        Write-Host "  Enter a number to select, or type a custom path:" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  No mod folders detected automatically." -ForegroundColor DarkYellow
+        Write-Host "  Enter a custom path:" -ForegroundColor DarkGray
+    }
+    Write-Host ""
+    $userInput = Read-Host "  Choice"
+
+    if ($userInput -match '^\d+$') {
+        $idx = [int]$userInput - 1
+        if ($idx -ge 0 -and $idx -lt $detectedFolders.Count) {
+            $modsPath = $detectedFolders[$idx].Path
+        } else {
+            Write-Host "  [ERROR] Invalid number." -ForegroundColor Red
+            Read-Host "  Press Enter to exit"
+            exit 1
+        }
+    } elseif ([string]::IsNullOrWhiteSpace($userInput) -and $detectedFolders.Count -gt 0) {
+        $modsPath = $detectedFolders[0].Path
+    } else {
+        $modsPath = $userInput.Trim()
+    }
 }
 
 if (-not (Test-Path $modsPath)) {
