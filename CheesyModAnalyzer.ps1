@@ -32,22 +32,62 @@ function Write-Banner {
     Clear-Host
     Start-Sleep -Milliseconds 80
 
-    $lines = @(
-        "                                                                    ",
-        "   =====================================================            ",
-        "   ||                                                 ||            ",
-        "   ||    o  CHEESY MOD ANALYZER                       ||            ",
-        "   ||       by cheese cat                             ||            ",
-        "   ||                                                 ||            ",
-        "   =====================================================            ",
-        "                                                                    "
+    $logo = @(
+        "  =====================================================================",
+        "  =                                                                   =",
+        "  =   @@@@@@  @  @  @@@@@@  @@@@@@  @@@@@@  @  @    @  @  @@@@@@  @@@@@@  =",
+        "  =  @@       @  @  @@      @@      @@      @@  @    @  @  @@  @@  @@  @@  =",
+        "  =  @@       @@@@  @@@@    @@@@    @@@@    @ @ @    @  @  @@  @@  @@  @@  =",
+        "  =  @@       @  @  @@      @@      @@      @  @@    @  @  @@  @@  @@  @@  =",
+        "  =   @@@@@@  @  @  @@@@@@  @@@@@@  @@      @   @    @@@@  @@@@@@  @@@@@@  =",
+        "  =                                                                   =",
+        "  =   @@@    @  @   @@@    @    @  @   @  @@@@@  @@@@@@  @@@@@   =",
+        "  =  @@  @@  @@ @  @@  @@  @    @  @   @     @@  @@      @@  @@  =",
+        "  =  @@@@@@  @ @@  @@@@@@  @    @   @ @    @@@   @@@@@   @@@@@   =",
+        "  =  @@  @@  @  @  @@  @@  @    @   @ @   @@     @@      @@  @@  =",
+        "  =  @@  @@  @  @  @@  @@  @@@@@     @    @@@@@@  @@@@@@  @@  @@  =",
+        "  =                                                                   =",
+        "  =====================================================================",
+        ""
     )
 
-    foreach ($line in $lines) {
+    # Use real block characters for the logo
+    $L1  = "  `u2588`u2588`u2588`u2557   `u2588`u2588`u2588`u2557`u2588`u2588`u2588`u2588`u2588`u2588`u2588`u2557 `u2588`u2588`u2588`u2588`u2588`u2588`u2557 `u2588`u2588`u2557    `u2588`u2588`u2557  `u2588`u2588`u2588`u2557   `u2588`u2588`u2588`u2557 `u2588`u2588`u2588`u2588`u2588`u2588`u2557 `u2588`u2588`u2588`u2588`u2588`u2588`u2557 "
+    $L2  = "  `u2588`u2588`u2588`u2588`u2557 `u2588`u2588`u2588`u2588`u2551`u2588`u2588`u2554`u2550`u2550`u2550`u2550`u255D`u2588`u2588`u2554`u2550`u2550`u2550`u2588`u2588`u2557`u2588`u2588`u2551    `u2588`u2588`u2551  `u2588`u2588`u2588`u2588`u2557 `u2588`u2588`u2588`u2588`u2551`u2588`u2588`u2554`u2550`u2550`u2550`u2588`u2588`u2557`u2588`u2588`u2554`u2550`u2550`u2588`u2588`u2557"
+    $L3  = "  `u2588`u2588`u2554`u2588`u2588`u2588`u2588`u2554`u2588`u2588`u2551`u2588`u2588`u2588`u2588`u2588`u2557  `u2588`u2588`u2551   `u2588`u2588`u2551`u2588`u2588`u2551 `u2588`u2557 `u2588`u2588`u2551  `u2588`u2588`u2554`u2588`u2588`u2588`u2588`u2554`u2588`u2588`u2551`u2588`u2588`u2551   `u2588`u2588`u2551`u2588`u2588`u2551  `u2588`u2588`u2551"
+    $L4  = "  `u2588`u2588`u2551`u255A`u2588`u2588`u2554`u255D`u2588`u2588`u2551`u2588`u2588`u2554`u2550`u2550`u255D  `u2588`u2588`u2551   `u2588`u2588`u2551`u2588`u2588`u2551`u2588`u2588`u2588`u2557`u2588`u2588`u2551  `u2588`u2588`u2551`u255A`u2588`u2588`u2554`u255D`u2588`u2588`u2551`u2588`u2588`u2551   `u2588`u2588`u2551`u2588`u2588`u2551  `u2588`u2588`u2551"
+    $L5  = "  `u2588`u2588`u2551 `u255A`u2550`u255D `u2588`u2588`u2551`u2588`u2588`u2588`u2588`u2588`u2588`u2588`u2557`u255A`u2588`u2588`u2588`u2588`u2588`u2588`u2554`u255D`u255A`u2588`u2588`u2588`u2554`u2588`u2588`u2588`u2554`u255D  `u2588`u2588`u2551 `u255A`u2550`u255D `u2588`u2588`u2551`u255A`u2588`u2588`u2588`u2588`u2588`u2588`u2554`u255D`u2588`u2588`u2588`u2588`u2588`u2588`u2554`u255D"
+    $L6  = "  `u255A`u2550`u255D     `u255A`u2550`u255D`u255A`u2550`u2550`u2550`u2550`u2550`u2550`u255D `u255A`u2550`u2550`u2550`u2550`u2550`u255D  `u255A`u2550`u2550`u255D`u255A`u2550`u2550`u255D   `u255A`u2550`u255D     `u255A`u2550`u255D `u255A`u2550`u2550`u2550`u2550`u2550`u255D `u255A`u2550`u2550`u2550`u2550`u2550`u255D "
+    $L7  = "   `u2588`u2588`u2588`u2588`u2588`u2557 `u2588`u2588`u2588`u2557   `u2588`u2588`u2557 `u2588`u2588`u2588`u2588`u2588`u2557 `u2588`u2588`u2551   `u2588`u2588`u2551   `u2588`u2588`u2557`u2588`u2588`u2588`u2588`u2588`u2588`u2588`u2557`u2588`u2588`u2588`u2588`u2588`u2588`u2588`u2557`u2588`u2588`u2588`u2588`u2588`u2588`u2557 "
+    $L8  = "  `u2588`u2588`u2554`u2550`u2550`u2588`u2588`u2557`u2588`u2588`u2588`u2588`u2557  `u2588`u2588`u2551`u2588`u2588`u2554`u2550`u2550`u2588`u2588`u2557`u2588`u2588`u2551   `u255A`u2588`u2588`u2557 `u2588`u2588`u2554`u255D`u255A`u2550`u2550`u2588`u2588`u2588`u2554`u255D`u2588`u2588`u2554`u2550`u2550`u2550`u2550`u255D`u2588`u2588`u2554`u2550`u2550`u2588`u2588`u2557"
+    $L9  = "  `u2588`u2588`u2588`u2588`u2588`u2588`u2588`u2551`u2588`u2588`u2554`u2588`u2588`u2557 `u2588`u2588`u2551`u2588`u2588`u2588`u2588`u2588`u2588`u2588`u2551`u2588`u2588`u2551    `u255A`u2588`u2588`u2588`u2588`u2554`u255D   `u2588`u2588`u2588`u2554`u255D `u2588`u2588`u2588`u2588`u2588`u2557  `u2588`u2588`u2588`u2588`u2588`u2588`u2554`u255D"
+    $L10 = "  `u2588`u2588`u2554`u2550`u2550`u2588`u2588`u2551`u2588`u2588`u2551`u255A`u2588`u2588`u2557`u2588`u2588`u2551`u2588`u2588`u2554`u2550`u2550`u2588`u2588`u2551`u2588`u2588`u2551     `u255A`u2588`u2588`u2554`u255D   `u2588`u2588`u2588`u2554`u255D  `u2588`u2588`u2554`u2550`u2550`u255D  `u2588`u2588`u2554`u2550`u2550`u2588`u2588`u2557"
+    $L11 = "  `u2588`u2588`u2551  `u2588`u2588`u2551`u2588`u2588`u2551 `u255A`u2588`u2588`u2588`u2588`u2551`u2588`u2588`u2551  `u2588`u2588`u2551`u2588`u2588`u2588`u2588`u2588`u2588`u2557 `u2588`u2588`u2551   `u2588`u2588`u2588`u2588`u2588`u2588`u2588`u2557`u2588`u2588`u2588`u2588`u2588`u2588`u2588`u2557`u2588`u2588`u2551  `u2588`u2588`u2551"
+    $L12 = "  `u255A`u2550`u255D  `u255A`u2550`u255D`u255A`u2550`u255D  `u255A`u2550`u2550`u2550`u255D`u255A`u2550`u255D  `u255A`u2550`u255D`u255A`u2550`u2550`u2550`u2550`u2550`u255D `u255A`u2550`u255D   `u255A`u2550`u2550`u2550`u2550`u2550`u2550`u255D`u255A`u2550`u2550`u2550`u2550`u2550`u2550`u255D`u255A`u2550`u255D  `u255A`u2550`u255D"
+
+    $cat = @(
+        "                        \    /\ ",
+        "                         )  ( ')",
+        "                        (  /  ) ",
+        "                         \(__)|  "
+    )
+
+    foreach ($line in @($L1,$L2,$L3,$L4,$L5,$L6)) {
         Write-Host $line -ForegroundColor Yellow
-        Start-Sleep -Milliseconds 25
+        Start-Sleep -Milliseconds 18
+    }
+    Write-Host ""
+    foreach ($line in @($L7,$L8,$L9,$L10,$L11,$L12)) {
+        Write-Host $line -ForegroundColor DarkYellow
+        Start-Sleep -Milliseconds 18
+    }
+    Write-Host ""
+    foreach ($line in $cat) {
+        Write-Host $line -ForegroundColor Yellow
+        Start-Sleep -Milliseconds 30
     }
 
+    Write-Host ""
     Write-Host "  " -NoNewline
     Write-Host "  o O o O o  [ Made by cheese cat ]  o O o O o  " -ForegroundColor DarkYellow
     Write-Host ""
@@ -439,131 +479,44 @@ if ($procs) {
     Write-Host ""
 }
 
-# ── Build full list of all known mod folders ───────────────────
-$detectedFolders = [System.Collections.Generic.List[hashtable]]::new()
-
-# Vanilla / Forge / Fabric
-$vanillaPath = Join-Path $env:APPDATA ".minecraft\mods"
-if (Test-Path $vanillaPath) { $detectedFolders.Add(@{ Label = "Vanilla/Fabric/Forge"; Path = $vanillaPath }) }
-
-# CurseForge
-$cfBases = @(
-    (Join-Path $env:USERPROFILE "curseforge\minecraft\Instances"),
-    (Join-Path $env:USERPROFILE "Documents\curseforge\minecraft\Instances"),
-    "C:\curseforge\minecraft\Instances"
-)
-foreach ($cfBase in $cfBases) {
-    if (Test-Path $cfBase) {
-        Get-ChildItem -Path $cfBase -Directory | ForEach-Object {
-            $mp = Join-Path $_.FullName "mods"
-            if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "CurseForge: $($_.Name)"; Path = $mp }) }
-        }
-    }
-}
-
-# Modrinth App
-$modrinthBases = @(
-    (Join-Path $env:APPDATA "com.modrinth.theseus\profiles"),
-    (Join-Path $env:LOCALAPPDATA "com.modrinth.theseus\profiles"),
-    (Join-Path $env:APPDATA "ModrinthApp\profiles"),
-    (Join-Path $env:LOCALAPPDATA "ModrinthApp\profiles")
-)
-foreach ($mrBase in $modrinthBases) {
-    if (Test-Path $mrBase) {
-        Get-ChildItem -Path $mrBase -Directory | ForEach-Object {
-            $mp = Join-Path $_.FullName "mods"
-            if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "Modrinth: $($_.Name)"; Path = $mp }) }
-        }
-    }
-}
-
-# Prism Launcher
-$prismBases = @(
-    (Join-Path $env:APPDATA "PrismLauncher\instances"),
-    (Join-Path $env:LOCALAPPDATA "PrismLauncher\instances"),
-    (Join-Path $env:APPDATA "prismlauncher\instances"),
-    (Join-Path $env:LOCALAPPDATA "prismlauncher\instances")
-)
-foreach ($prismBase in $prismBases) {
-    if (Test-Path $prismBase) {
-        Get-ChildItem -Path $prismBase -Directory | ForEach-Object {
-            $mp = Join-Path $_.FullName ".minecraft\mods"
-            if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "Prism: $($_.Name)"; Path = $mp }) }
-        }
-    }
-}
-
-# ATLauncher
-$atlBase = Join-Path $env:APPDATA "ATLauncher\instances"
-if (Test-Path $atlBase) {
-    Get-ChildItem -Path $atlBase -Directory | ForEach-Object {
-        $mp = Join-Path $_.FullName "mods"
-        if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "ATLauncher: $($_.Name)"; Path = $mp }) }
-    }
-}
-
-# MultiMC
-$mmcBases = @(
-    (Join-Path $env:APPDATA "MultiMC\instances"),
-    (Join-Path $env:LOCALAPPDATA "MultiMC\instances")
-)
-foreach ($mmcBase in $mmcBases) {
-    if (Test-Path $mmcBase) {
-        Get-ChildItem -Path $mmcBase -Directory | ForEach-Object {
-            $mp = Join-Path $_.FullName ".minecraft\mods"
-            if (Test-Path $mp) { $detectedFolders.Add(@{ Label = "MultiMC: $($_.Name)"; Path = $mp }) }
-        }
-    }
-}
-
-# ── Try to find the ACTIVE instance from the running Java process ──
+# ── Detect the ONE active Minecraft instance from the running java process ──
 $autoFolder = $null
 $autoLabel  = $null
 
 if ($procs) {
     foreach ($proc in $procs) {
         try {
-            # Read the full command line of the java process via WMI
-            $wmi = Get-WmiObject Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction SilentlyContinue
+            $wmi     = Get-WmiObject Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction SilentlyContinue
             $cmdLine = if ($wmi) { $wmi.CommandLine } else { "" }
 
-            # Walk all known folders and see which one is a parent of the working dir / command line
-            foreach ($folder in $detectedFolders) {
-                $normalized = $folder.Path.TrimEnd('\').ToLower()
-                if ($cmdLine -and $cmdLine.ToLower() -like "*$normalized*") {
-                    $autoFolder = $folder.Path
-                    $autoLabel  = $folder.Label
-                    break
+            if ($cmdLine) {
+                # Strategy 1: --gameDir "C:\path\to\instance" or --gameDir C:\path
+                $m = [regex]::Match($cmdLine, '--gameDir\s+"([^"]+)"')
+                if (-not $m.Success) {
+                    $m = [regex]::Match($cmdLine, '--gameDir\s+(\S+)')
                 }
-            }
-
-            # Fallback: check the process working directory
-            if (-not $autoFolder) {
-                $workDir = $wmi.ExecutablePath
-                foreach ($folder in $detectedFolders) {
-                    $normalized = $folder.Path.TrimEnd('\').ToLower()
-                    if ($workDir -and $workDir.ToLower() -like "*$normalized*") {
-                        $autoFolder = $folder.Path
-                        $autoLabel  = $folder.Label
-                        break
-                    }
-                }
-            }
-
-            # Fallback: match the instance via -Dminecraft.appDir or --gameDir in the command line
-            if (-not $autoFolder -and $cmdLine) {
-                $gameDirMatch = [regex]::Match($cmdLine, '(?:--gameDir|-Dminecraft\.appDir=)([^\s"]+)')
-                if ($gameDirMatch.Success) {
-                    $gameDir = $gameDirMatch.Groups[1].Value.Trim('"')
+                if ($m.Success) {
+                    $gameDir   = $m.Groups[1].Value.TrimEnd('\')
                     $candidate = Join-Path $gameDir "mods"
                     if (Test-Path $candidate) {
-                        # See if it matches a known folder label
-                        $match = $detectedFolders | Where-Object { $_.Path -eq $candidate } | Select-Object -First 1
                         $autoFolder = $candidate
-                        $autoLabel  = if ($match) { $match.Label } else { "Active Instance" }
-                        # Add to list if not already present
-                        if (-not $match) {
-                            $detectedFolders.Insert(0, @{ Label = $autoLabel; Path = $autoFolder })
+                        # Derive a friendly name from the folder path
+                        $autoLabel  = Split-Path (Split-Path $gameDir -Parent) -Leaf
+                        if ([string]::IsNullOrWhiteSpace($autoLabel) -or $autoLabel -eq "instances") {
+                            $autoLabel = Split-Path $gameDir -Leaf
+                        }
+                    }
+                }
+
+                # Strategy 2: -Dminecraft.appDir=...  (some launchers use this)
+                if (-not $autoFolder) {
+                    $m2 = [regex]::Match($cmdLine, '-Dminecraft\.appDir=([^\s"]+)')
+                    if ($m2.Success) {
+                        $gameDir   = $m2.Groups[1].Value.Trim('"').TrimEnd('\')
+                        $candidate = Join-Path $gameDir "mods"
+                        if (Test-Path $candidate) {
+                            $autoFolder = $candidate
+                            $autoLabel  = Split-Path $gameDir -Leaf
                         }
                     }
                 }
@@ -575,7 +528,6 @@ if ($procs) {
 
 # ── Display & selection ────────────────────────────────────────
 if ($autoFolder) {
-    # An active instance was found — highlight it and offer to use it immediately
     Write-Host "  " -NoNewline
     Write-Host " ACTIVE INSTANCE DETECTED " -ForegroundColor Black -BackgroundColor Yellow
     Write-Host ""
@@ -587,7 +539,7 @@ if ($autoFolder) {
     Write-Host ""
     Write-Host "  Press " -NoNewline -ForegroundColor DarkGray
     Write-Host "Enter" -NoNewline -ForegroundColor Yellow
-    Write-Host " to scan this instance, or type a custom path:" -ForegroundColor DarkGray
+    Write-Host " to scan this instance, or type a custom path to override:" -ForegroundColor DarkGray
     Write-Host ""
     $userInput = Read-Host "  Choice"
 
@@ -597,39 +549,20 @@ if ($autoFolder) {
         $modsPath = $userInput.Trim()
     }
 } else {
-    # No active instance — fall back to showing the full numbered list
-    Write-Host "  Detected mod folders:" -ForegroundColor DarkGray
-    Write-Host ""
-    if ($detectedFolders.Count -gt 0) {
-        for ($n = 0; $n -lt $detectedFolders.Count; $n++) {
-            Write-Host "  " -NoNewline
-            Write-Host " $($n+1) " -NoNewline -ForegroundColor Black -BackgroundColor Yellow
-            Write-Host "  $($detectedFolders[$n].Label)" -NoNewline -ForegroundColor White
-            Write-Host "  $($detectedFolders[$n].Path)" -ForegroundColor DarkGray
-        }
+    # Minecraft not running or gameDir not found in command line
+    if ($procs) {
+        Write-Host "  " -NoNewline
+        Write-Host " Minecraft is running but the instance path could not be detected. " -ForegroundColor Black -BackgroundColor DarkYellow
         Write-Host ""
-        Write-Host "  Enter a number to select, or type a custom path:" -ForegroundColor DarkGray
     } else {
-        Write-Host "  No mod folders detected automatically." -ForegroundColor DarkYellow
-        Write-Host "  Enter a custom path:" -ForegroundColor DarkGray
+        Write-Host "  " -NoNewline
+        Write-Host " Minecraft is not running. " -ForegroundColor Black -BackgroundColor DarkGray
+        Write-Host ""
     }
+    Write-Host "  Enter the path to your mods folder:" -ForegroundColor DarkGray
     Write-Host ""
-    $userInput = Read-Host "  Choice"
-
-    if ($userInput -match '^\d+$') {
-        $idx = [int]$userInput - 1
-        if ($idx -ge 0 -and $idx -lt $detectedFolders.Count) {
-            $modsPath = $detectedFolders[$idx].Path
-        } else {
-            Write-Host "  [ERROR] Invalid number." -ForegroundColor Red
-            Read-Host "  Press Enter to exit"
-            exit 1
-        }
-    } elseif ([string]::IsNullOrWhiteSpace($userInput) -and $detectedFolders.Count -gt 0) {
-        $modsPath = $detectedFolders[0].Path
-    } else {
-        $modsPath = $userInput.Trim()
-    }
+    $userInput = Read-Host "  Path"
+    $modsPath  = $userInput.Trim()
 }
 
 if (-not (Test-Path $modsPath)) {
