@@ -803,13 +803,6 @@ if ($suspicious.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " SUSPICIOUS MODS DETECTED " -ForegroundColor Black -BackgroundColor Red
     Write-Host ""
-    foreach ($m in $suspicious) {
-        Write-Host "  '$($m.File)' contains the following suspicious strings:" -ForegroundColor Red
-        foreach ($p in $m.Patterns) {
-            Write-Host "    - $p" -ForegroundColor DarkRed
-        }
-        Write-Host ""
-    }
 } elseif ($unknown.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " UNIDENTIFIED CHEESE " -ForegroundColor Black -BackgroundColor DarkYellow
