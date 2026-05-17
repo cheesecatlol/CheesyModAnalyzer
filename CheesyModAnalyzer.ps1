@@ -558,7 +558,7 @@ $whitelistSuppressedPatterns = [System.Collections.Generic.HashSet[string]]::new
     # KeyboardMixin is used by any mod with keybind handling (e.g. push-to-talk)
     "KeyboardMixin",
     # Blink is used in UI/animation code — only meaningful alongside other cheat flags
-    "Blink",
+    "Blink"
 ) | ForEach-Object { [void]$whitelistSuppressedPatterns.Add($_) }
 
 # ── Helper: verify mod identity via metadata inside the JAR ─────────────────
@@ -682,8 +682,13 @@ function Invoke-JarScan([string]$FilePath) {
                                 $t  = $r.ReadToEnd(); $r.Close(); $s.Close()
                                 foreach ($p in $SuspiciousPatterns) { if ($t -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
                                 foreach ($p in $cheatStrings)        { if ($t -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
-                                if ($JapaneseRegex.IsMatch($t) -and -not $njIsLangFile)             { Add-Flag "Japanese obfuscation" }
+                                if ($JapaneseRegex.IsMatch($t) -and -not $njIsLangFile)              { Add-Flag "Japanese obfuscation" }
                                 if ([regex]::IsMatch($t, "[\u4E00-\u9FFF]") -and -not $njIsLangFile) { Add-Flag "Chinese obfuscation" }
+                            } catch {}
+                        }
+                    }
+
+                    # class bytecode scan
                     if ($njExt -eq ".class" -and $njEntry.Length -lt 512KB) {
                         try {
                             $s    = $njEntry.Open()
