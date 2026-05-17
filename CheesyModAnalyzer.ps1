@@ -524,22 +524,55 @@ $whitelistSuppressedPatterns = [System.Collections.Generic.HashSet[string]]::new
     "checkAnticheat","detectAnticheat","getAnticheat"
 ) | ForEach-Object { [void]$whitelistSuppressedPatterns.Add($_) }
 
+# ── Helper: verify mod identity via metadata inside the JAR ─────────────────
+# Returns $true only if the mod ID in fabric.mod.json or mods.toml matches a
+# whitelisted token. Filename is intentionally NOT used — renaming a cheat JAR
+# to "feather-fabric.jar" will NOT bypass this check.
+function Get-ModWhitelisted([string]$FilePath) {
+    try {
+        $z   = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
+
+        # ── Fabric: fabric.mod.json ──────────────────────────────
+        $fmj = $z.Entries | Where-Object { $_.FullName -eq "fabric.mod.json" } | Select-Object -First 1
+        if ($fmj) {
+            $sr  = [System.IO.StreamReader]::new($fmj.Open())
+            $raw = $sr.ReadToEnd(); $sr.Close()
+            if ($raw -match '"id"\s*:\s*"([^"]+)"') {
+                $modId = $Matches[1].ToLower()
+                foreach ($token in $whitelistedFileTokens) {
+                    if ($modId -like "*$($token.ToLower())*") { $z.Dispose(); return $true }
+                }
+            }
+        }
+
+        # ── Forge / NeoForge: META-INF/mods.toml ────────────────
+        $toml = $z.Entries | Where-Object { $_.FullName -eq "META-INF/mods.toml" } | Select-Object -First 1
+        if ($toml) {
+            $sr  = [System.IO.StreamReader]::new($toml.Open())
+            $raw = $sr.ReadToEnd(); $sr.Close()
+            if ($raw -match 'modId\s*=\s*"([^"]+)"') {
+                $modId = $Matches[1].ToLower()
+                foreach ($token in $whitelistedFileTokens) {
+                    if ($modId -like "*$($token.ToLower())*") { $z.Dispose(); return $true }
+                }
+            }
+        }
+
+        $z.Dispose()
+    } catch {}
+    return $false
+}
+
 function Invoke-JarScan([string]$FilePath) {
     $found = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
     # helpers
     function Add-Flag([string]$flag) { [void]$found.Add($flag.Trim()) }
 
-    # ── Check if this JAR is whitelisted ────────────────────────
-    # Use the full filename (not just extension-stripped) so .temp.jar files match too
-    $fileNameLower  = [System.IO.Path]::GetFileName($FilePath).ToLower()
-    $isWhitelisted  = $false
-    foreach ($token in $whitelistedFileTokens) {
-        if ($fileNameLower -like "*$token*") { $isWhitelisted = $true; break }
-    }
-
-    # Whitelisted JARs skip the entire deep scan — return empty immediately
-    if ($isWhitelisted) { return @() }
+    # ── Whitelist check via mod metadata (NOT filename) ──────────
+    # Get-ModWhitelisted reads fabric.mod.json / mods.toml inside the JAR.
+    # Renaming a cheat JAR to "feather-fabric.jar" will NOT bypass this.
+    if (Get-ModWhitelisted -FilePath $FilePath) { return @() }
 
     function Add-FlagFiltered([string]$flag) {
         [void]$found.Add($flag.Trim())
@@ -898,14 +931,12 @@ if ($unverifiedJars.Count -eq 0) {
         $hash     = $hashMap[$jar.Name]
         $src      = $srcMap[$jar.Name]
 
-        # Filename token check against known cheat clients
-        # Skip for whitelisted mods (e.g. feather-fabric, essential, sodium, etc.)
-        $fileNameLower    = $jar.Name.ToLower()
-        $isJarWhitelisted = $false
-        foreach ($wt in $whitelistedFileTokens) {
-            if ($fileNameLower -like "*$wt*") { $isJarWhitelisted = $true; break }
-        }
+        # Whitelist check — verify mod identity via fabric.mod.json / mods.toml,
+        # NOT by filename (renaming a cheat to "feather-fabric.jar" won't bypass this)
+        $isJarWhitelisted = Get-ModWhitelisted -FilePath $jar.FullName
+
         if (-not $isJarWhitelisted) {
+            $fileNameLower = $jar.Name.ToLower()
             foreach ($token in $knownCheatFileTokens) {
                 if ($fileNameLower -match [regex]::Escape($token.ToLower())) {
                     [void]$patterns.Add("Known cheat filename token: $token")
@@ -1011,13 +1042,8 @@ foreach ($jar in $activeJars) {
     Write-Host " $pct4% " -NoNewline -ForegroundColor DarkGray
     Write-Host " $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
 
-    # Skip whitelisted JARs in obfuscation scan
-    $jarNameLower4 = $jar.Name.ToLower()
-    $skipObf = $false
-    foreach ($wt in $whitelistedFileTokens) {
-        if ($jarNameLower4 -like "*$wt*") { $skipObf = $true; break }
-    }
-    if ($skipObf) { continue }
+    # Skip whitelisted JARs — verified via mod metadata, not filename
+    if (Get-ModWhitelisted -FilePath $jar.FullName) { continue }
 
     try {
         $zip        = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
