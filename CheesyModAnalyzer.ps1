@@ -560,68 +560,63 @@ if ($jarFiles.Count -eq 0) {
     exit 0
 }
 
+
 Write-Host ""
-Write-Host "  Found " -NoNewline -ForegroundColor DarkGray
-Write-Host "$($jarFiles.Count)" -NoNewline -ForegroundColor Yellow
-Write-Host " mod(s) in: " -NoNewline -ForegroundColor DarkGray
-Write-Host $modsPath -ForegroundColor White
+Write-Host "  Scanning directory: " -NoNewline -ForegroundColor DarkGray
+Write-Host $modsPath -ForegroundColor Yellow
 Write-Host ""
-Start-Sleep -Milliseconds 400
+Write-Host "  Found $($jarFiles.Count) JAR files to analyze" -ForegroundColor White
+Write-Host ""
+Start-Sleep -Milliseconds 300
 
 # ================================================================
-#  ANALYSIS LOOP
+#  PASS 1 — HASH VERIFICATION
 # ================================================================
 
-Write-SectionHeader "SCANNING YOUR MODS..." "Yellow"
+Write-Host "  " -NoNewline
+Write-Host "Pass 1" -NoNewline -ForegroundColor Yellow
+Write-Host " — Hash verification (Modrinth + Megabase)..." -ForegroundColor DarkGray
 
 $verified   = [System.Collections.Generic.List[hashtable]]::new()
 $unknown    = [System.Collections.Generic.List[hashtable]]::new()
 $suspicious = [System.Collections.Generic.List[hashtable]]::new()
+$hashMap    = @{}
+$srcMap     = @{}
 
-$i = 0
 foreach ($jar in $jarFiles) {
-    $i++
-
-    # Skip disabled mods
-    if ($jar.Name -like "*.jar.disabled") {
-        $displayName = $jar.Name -replace '\.disabled$', ''
-        Write-Host "  [" -NoNewline -ForegroundColor DarkYellow
-        Write-Host " DISABLED " -NoNewline -ForegroundColor Black -BackgroundColor DarkGray
-        Write-Host "]  $displayName  (disabled)" -ForegroundColor DarkGray
-        continue
-    }
-
-    Write-Host "`r  [$i/$($jarFiles.Count)] $($jar.Name)..." -NoNewline -ForegroundColor DarkGray
-
+    if ($jar.Name -like "*.jar.disabled") { continue }
+    $hash = Get-SHA1Hash -FilePath $jar.FullName
     $src  = Get-DownloadSource -FilePath $jar.FullName
-    $hash = Get-SHA1Hash       -FilePath $jar.FullName
+    $hashMap[$jar.Name] = $hash
+    $srcMap[$jar.Name]  = $src
 
     $result = Invoke-ModrinthLookup -Hash $hash
     if (-not $result.Found) { $result = Invoke-MegabaseLookup -Hash $hash }
 
     if ($result.Found) {
-        Clear-Line
-        Write-Host "  [" -NoNewline -ForegroundColor DarkYellow
-        Write-Host " VERIFIED " -NoNewline -ForegroundColor Black -BackgroundColor DarkGreen
-        Write-Host "]  $($jar.Name)  " -NoNewline -ForegroundColor White
-        Write-Host $result.Name -ForegroundColor DarkGreen
         $verified.Add(@{ File = $jar.Name; Name = $result.Name; Slug = $result.Slug; DbSource = $result.Source; Hash = $hash; DlSource = $src })
-        continue
     }
+}
 
+$verifiedNames = $verified | ForEach-Object { $_.File }
+
+# ================================================================
+#  PASS 2 — DEEP SCAN UNVERIFIED
+# ================================================================
+
+$unverifiedJars = $jarFiles | Where-Object { $_.Name -notlike "*.jar.disabled" -and $verifiedNames -notcontains $_.Name }
+
+Write-Host "  " -NoNewline
+Write-Host "Pass 2" -NoNewline -ForegroundColor Yellow
+Write-Host " — Deep-scanning $($unverifiedJars.Count) unverified mod(s)..." -ForegroundColor DarkGray
+
+foreach ($jar in $unverifiedJars) {
     $patterns = Invoke-JarScan -FilePath $jar.FullName
-
-    Clear-Line
+    $hash     = $hashMap[$jar.Name]
+    $src      = $srcMap[$jar.Name]
     if ($patterns.Count -gt 0) {
-        Write-Host "  [" -NoNewline -ForegroundColor DarkYellow
-        Write-Host "SUSPICIOUS" -NoNewline -ForegroundColor White -BackgroundColor DarkRed
-        Write-Host "]  $($jar.Name)  " -NoNewline -ForegroundColor White
-        Write-Host "$($patterns.Count) pattern(s) found" -ForegroundColor Red
         $suspicious.Add(@{ File = $jar.Name; Hash = $hash; Patterns = $patterns; DlSource = $src })
     } else {
-        Write-Host "  [" -NoNewline -ForegroundColor DarkYellow
-        Write-Host " UNKNOWN  " -NoNewline -ForegroundColor White -BackgroundColor DarkBlue
-        Write-Host "]  $($jar.Name)" -ForegroundColor White
         $unknown.Add(@{ File = $jar.Name; Hash = $hash; DlSource = $src })
     }
 }
@@ -629,61 +624,76 @@ foreach ($jar in $jarFiles) {
 Write-Host ""
 
 # ================================================================
-#  RESULTS REPORT
+#  RESULTS
 # ================================================================
 
-Write-Host ""
-Write-Host ""
-Write-Host ("  " + "~" * 62) -ForegroundColor DarkYellow
-Write-Host "  CHEESY RESULTS" -ForegroundColor Yellow
-Write-Host ("  " + "~" * 62) -ForegroundColor DarkYellow
-Write-Host ""
-
-Write-Host "  " -NoNewline
-Write-Host " $($verified.Count) VERIFIED " -NoNewline -ForegroundColor Black -BackgroundColor DarkGreen
-Write-Host "  " -NoNewline
-Write-Host " $($unknown.Count) UNKNOWN " -NoNewline -ForegroundColor White -BackgroundColor DarkBlue
-Write-Host "  " -NoNewline
-Write-Host " $($suspicious.Count) SUSPICIOUS " -ForegroundColor White -BackgroundColor DarkRed
-Write-Host ""
+$sep = "  " + ("=" * 74)
 
 # ── VERIFIED ──────────────────────────────────────────────────
-if ($verified.Count -gt 0) {
-    Write-SectionHeader "VERIFIED MODS  ($($verified.Count))" "Green"
-    foreach ($m in $verified) {
-        Write-Host "  " -NoNewline
-        Write-Host " OK " -NoNewline -ForegroundColor Black -BackgroundColor DarkGreen
-        Write-Host "  $($m.File)" -ForegroundColor White
+Write-Host ""
+Write-Host $sep -ForegroundColor DarkYellow
+Write-Host "  " -NoNewline
+Write-Host " o " -NoNewline -ForegroundColor Black -BackgroundColor DarkGreen
+Write-Host "  VERIFIED MODS  ($($verified.Count))" -ForegroundColor Green
+Write-Host $sep -ForegroundColor DarkYellow
+Write-Host ""
+foreach ($m in $verified) {
+    $label = if ($m.Name) { $m.Name } else { $m.File }
+    Write-Host "  " -NoNewline
+    Write-Host " + " -NoNewline -ForegroundColor Black -BackgroundColor DarkGreen
+    Write-Host "  $label" -NoNewline -ForegroundColor Green
+    if ($m.Name -and $m.Name -ne $m.File) {
+        Write-Host "  ->  $($m.File)" -ForegroundColor DarkGray
+    } else {
+        Write-Host ""
     }
-    Write-Host ""
 }
 
 # ── UNKNOWN ───────────────────────────────────────────────────
-if ($unknown.Count -gt 0) {
-    Write-SectionHeader "UNKNOWN MODS  ($($unknown.Count))" "Cyan"
+Write-Host ""
+Write-Host $sep -ForegroundColor DarkYellow
+Write-Host "  " -NoNewline
+Write-Host " o " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
+Write-Host "  UNKNOWN MODS  ($($unknown.Count))" -ForegroundColor Yellow
+Write-Host $sep -ForegroundColor DarkYellow
+Write-Host ""
+if ($unknown.Count -eq 0) {
+    Write-Host "  None." -ForegroundColor DarkGray
+} else {
     foreach ($m in $unknown) {
         Write-Host "  " -NoNewline
-        Write-Host " ?? " -NoNewline -ForegroundColor White -BackgroundColor DarkBlue
-        Write-Host "  $($m.File)" -ForegroundColor White
+        Write-Host " ? " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
+        Write-Host "  $($m.File)" -NoNewline -ForegroundColor Yellow
+        if ($m.DlSource) {
+            $sc = if ($m.DlSource.IsSafe -eq $false) { "Red" } else { "DarkGray" }
+            Write-Host "   Source: $($m.DlSource.Label)" -ForegroundColor $sc
+        } else {
+            Write-Host ""
+        }
     }
-    Write-Host ""
 }
 
 # ── SUSPICIOUS ────────────────────────────────────────────────
-if ($suspicious.Count -gt 0) {
-    Write-SectionHeader "SUSPICIOUS MODS  ($($suspicious.Count))" "Red"
+Write-Host ""
+Write-Host $sep -ForegroundColor DarkYellow
+Write-Host "  " -NoNewline
+Write-Host " o " -NoNewline -ForegroundColor White -BackgroundColor DarkRed
+Write-Host "  SUSPICIOUS MODS  ($($suspicious.Count))" -ForegroundColor Red
+Write-Host $sep -ForegroundColor DarkYellow
+Write-Host ""
+if ($suspicious.Count -eq 0) {
+    Write-Host "  None." -ForegroundColor DarkGray
+} else {
     foreach ($m in $suspicious) {
-        Write-ResultLine "SUSPICIOUS" $m.File
-        Write-DetailLine "Hash    " "$($m.Hash.Substring(0,20))..." "DarkGray"
-
+        Write-Host "  " -NoNewline
+        Write-Host " ! " -NoNewline -ForegroundColor White -BackgroundColor DarkRed
+        Write-Host "  $($m.File)" -ForegroundColor Red
+        Write-Host "       Hash   : $($m.Hash.Substring(0,20))..." -ForegroundColor DarkGray
         if ($m.DlSource) {
-            $c = if ($m.DlSource.IsSafe -eq $false) { "Red" } else { "DarkGray" }
-            Write-DetailLine "Source  " $m.DlSource.Label $c
+            $sc = if ($m.DlSource.IsSafe -eq $false) { "Red" } else { "DarkGray" }
+            Write-Host "       Source : $($m.DlSource.Label)" -ForegroundColor $sc
         }
-
-        # Specific pattern explanations
-        Write-Host ""
-        Write-Host "           Detected strings:" -ForegroundColor DarkRed
+        Write-Host "       Detected patterns:" -ForegroundColor DarkGray
         foreach ($p in $m.Patterns) {
             $explanation = switch -Wildcard ($p) {
                 "AimAssist"                            { "Automatically aims at players" }
@@ -695,7 +705,7 @@ if ($suspicious.Count -gt 0) {
                 "Criticals"                            { "Forces critical hits without jumping" }
                 "Reach"                                { "Extends melee attack range beyond normal" }
                 "Hitboxes"                             { "Enlarges entity hitboxes for easier hits" }
-                "ShieldBreaker"                        { "Automatically disables opponent shields" }
+                "ShieldBreaker"                        { "Bypasses or breaks opponent's shield" }
                 "ShieldDisabler"                       { "Blocks opponent from raising their shield" }
                 "AxeSpam"                              { "Rapidly spams axe to break shields faster" }
                 "BowAimbot"                            { "Auto-aims bow at players" }
@@ -756,9 +766,6 @@ if ($suspicious.Count -gt 0) {
                 "AutoClicker"                          { "Clicks faster than humanly possible" }
                 "FastXP"                               { "Collects XP orbs at abnormal speed" }
                 "Nuker"                                { "Destroys large areas of blocks instantly" }
-                "AutoSign"                             { "Auto-fills sign text" }
-                "AutoBuild"                            { "Automatically constructs structures" }
-                "Printer"                              { "Places schematic blocks automatically" }
                 "Asteria"                              { "Known cheat client: Asteria" }
                 "Prestige"                             { "Known cheat client: Prestige" }
                 "Xenon"                                { "Known cheat client: Xenon" }
@@ -787,7 +794,7 @@ if ($suspicious.Count -gt 0) {
                 "Japanese obfuscation"                 { "Japanese character class names used to obfuscate code" }
                 default                                { "Suspicious string matched in JAR contents" }
             }
-            Write-Host "             " -NoNewline
+            Write-Host "         " -NoNewline
             Write-Host " $p " -NoNewline -ForegroundColor White -BackgroundColor DarkRed
             Write-Host "  $explanation" -ForegroundColor DarkGray
         }
@@ -795,32 +802,43 @@ if ($suspicious.Count -gt 0) {
     }
 }
 
-# ── VERDICT ───────────────────────────────────────────────────
-Write-Host ("  " + "~" * 62) -ForegroundColor DarkYellow
+# ================================================================
+#  SUMMARY
+# ================================================================
+
+Write-Host ""
+Write-Host $sep -ForegroundColor Yellow
+Write-Host "  SUMMARY" -ForegroundColor Yellow
+Write-Host $sep -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  Total files scanned : " -NoNewline -ForegroundColor DarkGray; Write-Host "$($jarFiles.Count)" -ForegroundColor White
+Write-Host "  Verified mods       : " -NoNewline -ForegroundColor DarkGray; Write-Host "$($verified.Count)" -ForegroundColor Green
+Write-Host "  Unknown mods        : " -NoNewline -ForegroundColor DarkGray; Write-Host "$($unknown.Count)" -ForegroundColor Yellow
+Write-Host "  Suspicious mods     : " -NoNewline -ForegroundColor DarkGray
+if ($suspicious.Count -gt 0) { Write-Host "$($suspicious.Count)" -ForegroundColor Red } else { Write-Host "0" -ForegroundColor Green }
+Write-Host ""
+Write-Host $sep -ForegroundColor Yellow
 Write-Host ""
 
 if ($suspicious.Count -gt 0) {
     Write-Host "  " -NoNewline
-    Write-Host " SUSPICIOUS MODS DETECTED " -ForegroundColor Black -BackgroundColor Red
-    Write-Host ""
+    Write-Host " !! SUSPICIOUS MODS DETECTED — check the results above !! " -ForegroundColor White -BackgroundColor DarkRed
 } elseif ($unknown.Count -gt 0) {
     Write-Host "  " -NoNewline
-    Write-Host " UNIDENTIFIED CHEESE " -ForegroundColor Black -BackgroundColor DarkYellow
-    Write-Host ""
-    foreach ($m in $unknown) {
-        Write-Host "  '$($m.File)' was not found in any database." -ForegroundColor Yellow
-        Write-Host "  No cheat patterns were detected, but it cannot be verified as safe." -ForegroundColor DarkYellow
-    }
-    Write-Host ""
-    Write-Host "  Download mods only from CurseForge or Modrinth when possible." -ForegroundColor DarkGray
+    Write-Host " Unknown mods found — download mods only from CurseForge or Modrinth. " -ForegroundColor Black -BackgroundColor DarkYellow
 } else {
     Write-Host "  " -NoNewline
-    Write-Host " ALL MODS CLEAN " -ForegroundColor Black -BackgroundColor DarkGreen
-    Write-Host ""
-    Write-Host "  All $($verified.Count) mod(s) verified. No suspicious patterns detected." -ForegroundColor Green
+    Write-Host " All mods verified. Looking clean! " -ForegroundColor Black -BackgroundColor DarkGreen
 }
 
 Write-Host ""
-Write-Host ("  " + "~" * 62) -ForegroundColor DarkYellow
+Write-Host "  Analysis complete! Thanks for using CheesyModAnalyzer " -NoNewline -ForegroundColor White
+Write-Host "o" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  Created by  : cheese cat" -ForegroundColor DarkGray
+Write-Host "  Discord     : cheese_cat0" -ForegroundColor DarkGray
+Write-Host "  GitHub      : cheesecatlol" -ForegroundColor DarkGray
+Write-Host ""
+Write-Host $sep -ForegroundColor DarkYellow
 Write-Host ""
 Read-Host "  Press Enter to exit"
