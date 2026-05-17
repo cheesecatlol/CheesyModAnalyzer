@@ -628,34 +628,47 @@ Write-Host "Pass 2" -NoNewline -ForegroundColor Yellow
 Write-Host " — Deep-scanning $($unverifiedJars.Count) unverified mod(s)..." -ForegroundColor DarkGray
 Write-Host ""
 
-$j = 0
-foreach ($jar in $unverifiedJars) {
-    $j++
+if ($unverifiedJars.Count -eq 0) {
     Write-Host "  " -NoNewline
-    Write-Host "  Scanning " -NoNewline -ForegroundColor DarkGray
-    Write-Host "$($jar.Name)" -NoNewline -ForegroundColor White
-    Write-Host "..." -ForegroundColor DarkGray
+    Write-Host "[####################]" -NoNewline -ForegroundColor Green
+    Write-Host " 100% Done — All mods verified in Pass 1, skipping deep scan." -ForegroundColor DarkGray
+    Write-Host ""
+} else {
+    $j = 0
+    foreach ($jar in $unverifiedJars) {
+        $j++
+        $pct2  = [int](($j / $unverifiedJars.Count) * 100)
+        $bar2  = "#" * [int]($pct2 / 5)
+        $emp2  = "-" * (20 - $bar2.Length)
+        Write-Host "`r  " -NoNewline
+        Write-Host "[$bar2$emp2]" -NoNewline -ForegroundColor Yellow
+        Write-Host " $pct2% " -NoNewline -ForegroundColor DarkGray
+        Write-Host " $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
 
-    $patterns = Invoke-JarScan -FilePath $jar.FullName
-    $hash     = $hashMap[$jar.Name]
-    $src      = $srcMap[$jar.Name]
+        $patterns = Invoke-JarScan -FilePath $jar.FullName
+        $hash     = $hashMap[$jar.Name]
+        $src      = $srcMap[$jar.Name]
 
-    if ($patterns.Count -gt 0) {
+        if ($patterns.Count -gt 0) {
+            $suspicious.Add(@{ File = $jar.Name; Hash = $hash; Patterns = $patterns; DlSource = $src })
+        } else {
+            $unknown.Add(@{ File = $jar.Name; Hash = $hash; DlSource = $src })
+        }
+    }
+    Write-Host "`r  " -NoNewline
+    Write-Host "[####################]" -NoNewline -ForegroundColor Green
+    Write-Host " 100% Done                                                    " -ForegroundColor DarkGray
+    Write-Host ""
+    foreach ($m in $suspicious) {
         Write-Host "  " -NoNewline
         Write-Host " SUSPICIOUS " -NoNewline -ForegroundColor White -BackgroundColor DarkRed
-        Write-Host " $($patterns.Count) pattern(s) found" -ForegroundColor Red
-        $suspicious.Add(@{ File = $jar.Name; Hash = $hash; Patterns = $patterns; DlSource = $src })
-    } else {
+        Write-Host " $($m.File) — $($m.Patterns.Count) pattern(s)" -ForegroundColor Red
+    }
+    foreach ($m in $unknown) {
         Write-Host "  " -NoNewline
         Write-Host " UNKNOWN " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
-        Write-Host " No suspicious patterns" -ForegroundColor DarkGray
-        $unknown.Add(@{ File = $jar.Name; Hash = $hash; DlSource = $src })
+        Write-Host " $($m.File)" -ForegroundColor DarkGray
     }
-    Write-Host ""
-}
-
-if ($unverifiedJars.Count -eq 0) {
-    Write-Host "  All mods were verified in Pass 1 — skipping deep scan." -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -669,22 +682,27 @@ Write-Host " — Bypass/injection scan on all $($activeJars.Count) mods..." -For
 Write-Host ""
 
 $injected = [System.Collections.Generic.List[string]]::new()
+$k = 0
 foreach ($jar in $activeJars) {
-    Write-Host "`r  Checking $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
-    Start-Sleep -Milliseconds 18
-    # Check for injection markers: modified manifests, agent premain, injected class names
+    $k++
+    $pct3 = [int](($k / $activeJars.Count) * 100)
+    $bar3 = "#" * [int]($pct3 / 5)
+    $emp3 = "-" * (20 - $bar3.Length)
+    Write-Host "`r  " -NoNewline
+    Write-Host "[$bar3$emp3]" -NoNewline -ForegroundColor Yellow
+    Write-Host " $pct3% " -NoNewline -ForegroundColor DarkGray
+    Write-Host " $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
+
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
         foreach ($entry in $zip.Entries) {
-            if ($entry.FullName -match "MANIFEST\.MF") {
-                if ($entry.Length -lt 100KB) {
-                    $stream = $entry.Open()
-                    $reader = [System.IO.StreamReader]::new($stream)
-                    $text   = $reader.ReadToEnd()
-                    $reader.Close(); $stream.Close()
-                    if ($text -match "Premain-Class|Agent-Class|Can-Redefine-Classes|Can-Retransform-Classes") {
-                        $injected.Add($jar.Name)
-                    }
+            if ($entry.FullName -match "MANIFEST\.MF" -and $entry.Length -lt 100KB) {
+                $stream = $entry.Open()
+                $reader = [System.IO.StreamReader]::new($stream)
+                $text   = $reader.ReadToEnd()
+                $reader.Close(); $stream.Close()
+                if ($text -match "Premain-Class|Agent-Class|Can-Redefine-Classes|Can-Retransform-Classes") {
+                    if ($injected -notcontains $jar.Name) { $injected.Add($jar.Name) }
                 }
             }
             if ($entry.FullName -match "-injected\.class$|-agent\.class$|JavaAgent") {
@@ -694,7 +712,10 @@ foreach ($jar in $activeJars) {
         $zip.Dispose()
     } catch {}
 }
-Write-Host "`r  Scan complete.                                         " -ForegroundColor DarkGray
+Write-Host "`r  " -NoNewline
+Write-Host "[####################]" -NoNewline -ForegroundColor Green
+Write-Host " 100% Done                                                    " -ForegroundColor DarkGray
+Write-Host ""
 if ($injected.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " $($injected.Count) INJECTED MOD(S) DETECTED " -ForegroundColor White -BackgroundColor DarkRed
@@ -715,40 +736,46 @@ Write-Host " — Obfuscation analysis on all $($activeJars.Count) mods..." -Fore
 Write-Host ""
 
 $obfuscated = [System.Collections.Generic.List[hashtable]]::new()
+$l = 0
 foreach ($jar in $activeJars) {
-    Write-Host "`r  Analysing $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
-    Start-Sleep -Milliseconds 18
-    try {
-        $zip         = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
-        $classPaths  = $zip.Entries | Where-Object { $_.FullName -like "*.class" } | ForEach-Object { $_.FullName }
-        $total       = $classPaths.Count
-        $flags       = [System.Collections.Generic.List[string]]::new()
+    $l++
+    $pct4 = [int](($l / $activeJars.Count) * 100)
+    $bar4 = "#" * [int]($pct4 / 5)
+    $emp4 = "-" * (20 - $bar4.Length)
+    Write-Host "`r  " -NoNewline
+    Write-Host "[$bar4$emp4]" -NoNewline -ForegroundColor Yellow
+    Write-Host " $pct4% " -NoNewline -ForegroundColor DarkGray
+    Write-Host " $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
 
+    try {
+        $zip        = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
+        $classPaths = $zip.Entries | Where-Object { $_.FullName -like "*.class" } | ForEach-Object { $_.FullName }
+        $total      = $classPaths.Count
+        $flags      = [System.Collections.Generic.List[string]]::new()
         if ($total -gt 10) {
-            # Single-char package paths
             $shortCount = ($classPaths | Where-Object {
                 $parts = $_.Split('/')
                 $parts.Count -ge 3 -and ($parts[0..($parts.Count-2)] | Where-Object { $_.Length -gt 2 }).Count -eq 0
             }).Count
-            if ($shortCount / $total -gt 0.4) {
-                $flags.Add("Single-char package paths ($shortCount path segments)")
-            }
+            if ($shortCount / $total -gt 0.4) { $flags.Add("Single-char package paths ($shortCount path segments)") }
 
-            # Gibberish / no-vowel class names
             $gibCount = ($classPaths | Where-Object {
-                $name = [System.IO.Path]::GetFileNameWithoutExtension($_)
-                $name.Length -ge 3 -and $name -notmatch '[aeiouAEIOU]'
+                $n2 = [System.IO.Path]::GetFileNameWithoutExtension($_)
+                $n2.Length -ge 3 -and $n2 -notmatch '[aeiouAEIOU]'
             }).Count
             if ($gibCount / $total -gt 0.04) {
-                $pct2 = [int](($gibCount / $total) * 100)
-                $flags.Add("Gibberish class names ($pct2% have no vowels, $gibCount classes)")
+                $pctG = [int](($gibCount / $total) * 100)
+                $flags.Add("Gibberish class names ($pctG% have no vowels, $gibCount classes)")
             }
         }
         $zip.Dispose()
         if ($flags.Count -gt 0) { $obfuscated.Add(@{ File = $jar.Name; Flags = $flags }) }
     } catch {}
 }
-Write-Host "`r  Analysis complete.                                       " -ForegroundColor DarkGray
+Write-Host "`r  " -NoNewline
+Write-Host "[####################]" -NoNewline -ForegroundColor Green
+Write-Host " 100% Done                                                    " -ForegroundColor DarkGray
+Write-Host ""
 if ($obfuscated.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " $($obfuscated.Count) OBFUSCATED MOD(S) " -ForegroundColor Black -BackgroundColor DarkYellow
@@ -772,6 +799,19 @@ Write-Host " — Scanning JVM for agents and injections..." -ForegroundColor Dar
 Write-Host ""
 
 $jvmIssues = [System.Collections.Generic.List[string]]::new()
+$jvmSteps  = @("Reading process list","Fetching command lines","Checking -javaagent flags","Checking JVM boot flags","Finalizing")
+$m2 = 0
+foreach ($step in $jvmSteps) {
+    $m2++
+    $pct5 = [int](($m2 / $jvmSteps.Count) * 100)
+    $bar5 = "#" * [int]($pct5 / 5)
+    $emp5 = "-" * (20 - $bar5.Length)
+    Write-Host "`r  " -NoNewline
+    Write-Host "[$bar5$emp5]" -NoNewline -ForegroundColor Yellow
+    Write-Host " $pct5% " -NoNewline -ForegroundColor DarkGray
+    Write-Host " $step                              " -NoNewline -ForegroundColor DarkGray
+    Start-Sleep -Milliseconds 120
+}
 if ($procs) {
     foreach ($proc in $procs) {
         try {
@@ -781,18 +821,21 @@ if ($procs) {
                 $agents = [regex]::Matches($cmdLine, '-javaagent:([^\s"]+)')
                 foreach ($a in $agents) {
                     $agentPath = $a.Groups[1].Value
-                    # Ignore known legit launcher/IDE agents
                     if ($agentPath -notmatch "JetBrains|intellij|idea|eclipse|fabric-installer|theseus|modrinth|prismlauncher|multimc|atlauncher|curseforge|forge-installer|quilt-installer") {
                         $jvmIssues.Add("Suspicious -javaagent: $agentPath")
                     }
                 }
             }
-            if ($cmdLine -match "\-Xbootclasspath|\-XX:+DisableAttachMechanism") {
-                $jvmIssues.Add("Suspicious JVM flag detected in process $($proc.Id)")
+            if ($cmdLine -match "\-Xbootclasspath|\-XX:\+DisableAttachMechanism") {
+                $jvmIssues.Add("Suspicious JVM flag in process $($proc.Id)")
             }
         } catch {}
     }
 }
+Write-Host "`r  " -NoNewline
+Write-Host "[####################]" -NoNewline -ForegroundColor Green
+Write-Host " 100% Done                                                    " -ForegroundColor DarkGray
+Write-Host ""
 if ($jvmIssues.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " JVM ISSUES DETECTED " -ForegroundColor White -BackgroundColor DarkRed
