@@ -531,14 +531,17 @@ function Invoke-JarScan([string]$FilePath) {
     function Add-Flag([string]$flag) { [void]$found.Add($flag.Trim()) }
 
     # ── Check if this JAR is whitelisted ────────────────────────
-    $fileNameLower  = [System.IO.Path]::GetFileNameWithoutExtension($FilePath).ToLower()
+    # Use the full filename (not just extension-stripped) so .temp.jar files match too
+    $fileNameLower  = [System.IO.Path]::GetFileName($FilePath).ToLower()
     $isWhitelisted  = $false
     foreach ($token in $whitelistedFileTokens) {
         if ($fileNameLower -like "*$token*") { $isWhitelisted = $true; break }
     }
 
+    # Whitelisted JARs skip the entire deep scan — return empty immediately
+    if ($isWhitelisted) { return @() }
+
     function Add-FlagFiltered([string]$flag) {
-        if ($isWhitelisted -and $whitelistSuppressedPatterns.Contains($flag)) { return }
         [void]$found.Add($flag.Trim())
     }
 
@@ -897,7 +900,7 @@ if ($unverifiedJars.Count -eq 0) {
 
         # Filename token check against known cheat clients
         # Skip for whitelisted mods (e.g. feather-fabric, essential, sodium, etc.)
-        $fileNameLower    = [System.IO.Path]::GetFileNameWithoutExtension($jar.FullName).ToLower()
+        $fileNameLower    = $jar.Name.ToLower()
         $isJarWhitelisted = $false
         foreach ($wt in $whitelistedFileTokens) {
             if ($fileNameLower -like "*$wt*") { $isJarWhitelisted = $true; break }
@@ -1007,6 +1010,14 @@ foreach ($jar in $activeJars) {
     Write-Host "[$bar4$emp4]" -NoNewline -ForegroundColor Yellow
     Write-Host " $pct4% " -NoNewline -ForegroundColor DarkGray
     Write-Host " $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
+
+    # Skip whitelisted JARs in obfuscation scan
+    $jarNameLower4 = $jar.Name.ToLower()
+    $skipObf = $false
+    foreach ($wt in $whitelistedFileTokens) {
+        if ($jarNameLower4 -like "*$wt*") { $skipObf = $true; break }
+    }
+    if ($skipObf) { continue }
 
     try {
         $zip        = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
