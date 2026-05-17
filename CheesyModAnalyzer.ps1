@@ -114,42 +114,34 @@ function Write-DetailLine([string]$Key, [string]$Value, [ConsoleColor]$ValueColo
 # ================================================================
 
 $SuspiciousPatterns = @(
-    # Combat
-    "AimAssist","AutoCrystal","AutoHitCrystal","TriggerBot","Velocity","Criticals",
-    "Reach","Hitboxes","ShieldBreaker","ShieldDisabler","AxeSpam","KillAura",
+    # Combat — specific enough to be real signals
+    "AimAssist","AutoCrystal","AutoHitCrystal","TriggerBot","KillAura",
     "BowAimbot","CrystalAura","SurroundBreaker","HoleSnap","BedAura",
-    "MultiAura","ForceField","Aimbot","AntiBot","Regen","AntiAntiCheat",
-    "ClickAura","Derp","HeadRoll","LongJump",
-    # Movement
-    "Flight","Antiknockback","NoKnockback","JumpReset","SprintReset","NoJumpDelay",
-    "Scaffold","Tower","Jesus","Dolphin","BoatFly","ElytraFly","Phase","Clip",
-    "NoFall","NoSlow","Timer","Strafe","LegitScaffold","FastBridge",
-    "Glide","Spider","WallClimb","Bhop","BunnyHop","AirJump",
-    "FastLadder","NoWeb","IceSpeed","SafeWalk","EdgeSnap",
-    # Automation
-    "AutoTotem","AutoArmor","AutoPot","AutoDoubleHand","InventoryTotem","TotemHit",
+    "MultiAura","ForceField","Aimbot","AntiAntiCheat",
+    "ClickAura","ShieldBreaker","ShieldDisabler","AxeSpam",
+    # Movement — specific cheat names only
+    "Antiknockback","NoKnockback","JumpReset","SprintReset","NoJumpDelay",
+    "LegitScaffold","BoatFly","ElytraFly","Phase","Clip",
+    "BunnyHop","Bhop","AirJump","WallClimb",
+    # Automation — specific cheat automation
+    "AutoTotem","AutoDoubleHand","InventoryTotem","TotemHit",
     "PopSwitch","LagReach","Wtap","FakeLag","Blink","PacketFly",
-    "AutoFish","AutoSprint","AutoRespawn","AutoTool","AutoSword","AutoBow",
-    "AutoDrop","AutoFarm","AutoWalk","AutoSneak",
     # Visual / ESP
-    "BlockESP","Freecam","PackSpoof","PingSpoof","FakeNick","FakeItem",
-    "ESP","Tracers","ChestESP","PlayerESP","Wallhack","FullBright","XRay",
-    "StorageESP","MobESP","ItemESP","HoleESP","ArmorESP","HealthTags",
-    "CaveFinder","NameTags","Nametags",
+    "BlockESP","PackSpoof","PingSpoof","FakeNick","FakeItem",
+    "ChestESP","PlayerESP","Wallhack","StorageESP","MobESP","ItemESP","HoleESP","ArmorESP",
+    "HealthTags","NameTags","Nametags",
     # World
-    "FastPlace","ChestSteal","Refill","AutoEat","AutoMine","AutoClicker","FastXP",
-    "Nuker","AutoSign","AutoBuild","Printer","InvMove","InventoryMove",
+    "ChestSteal","AutoClicker","Nuker",
+    "AutoSign","AutoBuild","Printer","InvMove","InventoryMove",
     "NoRender","AntiHunger","NameProtect",
-    # Known clients / packages
-    "Asteria","Prestige","Xenon","Argon","Hellion","Virgin","Donut","Krypton",
+    # Known clients / packages — only unambiguous names
     "dev.krypton","dev.gambleclient","PrestigeClient","DoomsdayClient",
-    "Wurst","Sigma","LiquidBounce","Meteor","Ares","Salhack",
-    "Nodus","Flux","Entropy","Impact","Wolfram","Future",
-    "Aristois","Vape","Freezer","Drip","Tenacity","Clamour",
+    "Wurst","Sigma","LiquidBounce","Salhack",
+    "Nodus","Wolfram",
     "VapeClient","VapeLite","IntentClient","intent.store",
     "riseclient","rise.today","meteordevelopment","liquidbounce",
     "fdp-client","net.ccbluex","novoware","novoclient","impactclient","azura",
-    "pandaware","moonClient","astolfo","futureClient","konas","rusherhack","inertia","exhibition",
+    "pandaware","moonClient","astolfo","futureClient","konas","rusherhack","exhibition",
     "WolframClient","BleachHack","ThemisClient","ravenb","FluxClient","StrafeClient",
     # Malicious / backdoor
     "198Macros","Backdoor","TokenGrabber","Stealer","Keylogger",
@@ -166,7 +158,7 @@ $SuspiciousPatterns = @(
     "attachAgent","VirtualMachine.attach",
     "aHR0cDovL2FwaS5ub3ZhY2xpZW50LmxvbC93ZWJob29rLnR4dA==",
     # Obfuscation / injection libraries
-    "chainlibs","phantom-refmap","xyz.greaj","jnativehook","imgui",
+    "chainlibs","phantom-refmap","xyz.greaj","jnativehook",
     "KeyboardMixin","ClientPlayerInteractionManagerMixin","LicenseCheckMixin",
     "Allatori","ZKM","Stringer","Branchlock","Caesium",
     "me/zero/client","me/rigamortis","net/ccbluex","io/github/nevalackin",
@@ -175,17 +167,17 @@ $SuspiciousPatterns = @(
     "dasho","com/icqm/smoke","dev.krypton","dev.gambleclient","com.cheatbreaker",
     "client-refmap.json","cheat-refmap.json",
     "imgui.binding","imgui.gl3","imgui.glfw","JNativeHook","GlobalScreen","NativeKeyListener",
-    # Anticheat bypass / packet manipulation
+    # Anticheat bypass / packet manipulation — specific bypass strings only
     "spoofVersion","brandOverride","overrideBrand","fakeClientBrand","brandSpoof","versionSpoof",
     "cancelPacket","dropPacket","suppressPacket","blockPacket","spoofPacket","injectPacket",
     "sendFakePacket","sendSilentPacket","bypassAC","bypass_ac","evadeAC","evadeAnticheat",
     "isGrimAC","isNoCheat","isAAC","isSpartanAC","isIntave","grimBypass","ncpBypass","aacBypass",
-    "spartanBypass","checkAnticheat","detectAnticheat","getAnticheat",
+    "spartanBypass",
     "GrimBypass","NCPBypass","AACBypass","IntaveBypass","VulcanBypass","MatrixBypass",
-    "WatchdogBypass","VerusDisabler","GrimAC","grim-api","ac.grim","game.grim","setGrimFlag",
+    "WatchdogBypass","VerusDisabler","grim-api","setGrimFlag",
     "GrimVelocity","GrimDisabler","VelocitySpoof","KBReduce",
     "PacketMine","PacketWalk","PacketSneak","PacketCancel","PacketDupe","PacketSpam",
-    # Hitbox / velocity / rotation manipulation
+    # Hitbox / velocity / rotation manipulation — specific cheat method names
     "setTimerSpeed","timerSpeed","Timer.timerSpeed","setTickRate","overrideTickRate",
     "fakeTickCount","tickBoost","hitboxExpand","expandHitbox",
     "suppressKnockback","cancelKnockback","noKnockback","setVelocity(0","zeroVelocity",
@@ -195,20 +187,20 @@ $SuspiciousPatterns = @(
     "fakeGlowing","GlowBypass","glowBypass","baritone.bypass","pathfindBypass",
     "bypassLicense","fakeAuth","spoofSession","AltManager",
     # Additional combat hacks
-    "KillAura","ClickAura","MultiAura","ForceField","LegitAura","AimBot","AutoAim","SilentAim",
-    "AimLock","HeadSnap","CrystalAura","AnchorAura","AnchorFill","AnchorPlace",
-    "BedAura","AutoBed","BedBomb","BedPlace","BowAimbot","BowSpam","AutoBow",
-    "AutoCrit","CritBypass","AlwaysCrit","CriticalHit",
-    "ReachHack","ExtendReach","LongReach","HitboxExpand","AntiKB","NoKnockback",
-    "OffhandTotem","TotemSwitch","AutoWeapon","AutoSword","AutoCity","Burrow","SelfTrap",
+    "LegitAura","AimBot","AutoAim","SilentAim",
+    "AimLock","HeadSnap","AnchorAura","AnchorFill","AnchorPlace",
+    "AutoBed","BedBomb","BedPlace","BowAimbot","BowSpam",
+    "CritBypass","AlwaysCrit",
+    "ReachHack","ExtendReach","LongReach","HitboxExpand","AntiKB",
+    "OffhandTotem","TotemSwitch","AutoWeapon","AutoCity","Burrow","SelfTrap",
     "HoleFiller","AntiSurround","AntiBurrow","WTap","TargetStrafe","AutoGap","AutoPearl",
-    "FlyHack","CreativeFlight","BoatFly","PacketFly","AirJump","SpeedHack","BHop","BunnyHop",
-    "AntiFall","NoFallDamage","StepHack","FastClimb","AutoStep","HighStep",
-    "WaterWalk","LiquidWalk","LavaWalk","NoSlow","NoSlowdown","NoWeb","NoSoulSand",
-    "WallHack","ElytraSpeed","InstantElytra","ScaffoldWalk","FastBridge","AutoBridge",
+    "FlyHack","CreativeFlight","PacketFly","SpeedHack",
+    "StepHack","FastClimb","HighStep",
+    "WaterWalk","LiquidWalk","LavaWalk","NoSlowdown","NoSoulSand",
+    "InstantElytra","ScaffoldWalk","AutoBridge",
     "NukerLegit","InstantBreak","GhostHand","NoSwing","PlaceAssist","AirPlace","AutoPlace","InstantPlace",
-    "MobESP","ItemESP","StorageESP","Tracers","NameTagsHack","XRayHack","OreFinder",
-    "CaveFinder","OreESP","NewChunks","TunnelFinder","TargetHUD","ReachDisplay",
+    "NameTagsHack","XRayHack","OreFinder",
+    "OreESP","NewChunks","TunnelFinder","TargetHUD","ReachDisplay",
     "DoubleClicker","JitterClick","ButterflyClick","CPSBoost",
     "InvManager","InvMovebypass","AntiAFK","FakeLatency","FakePing",
     "SpoofRotation","PositionSpoof","GameSpeed","SpeedTimer",
@@ -217,7 +209,7 @@ $SuspiciousPatterns = @(
     "AutoAnchor","autoanchor","auto anchor","DoubleAnchor","HasAnchor",
     "anchortweaks","anchor macro","safe anchor","safeanchor","SafeAnchor","AirAnchor",
     "anchorMacro","LWFH Crystal","AutoBreach","NoBounce","EndCrystalItemMixin",
-    # Totem / Pot / Armor
+    # Totem / Pot / Armor — specific cheat strings
     "autototem","auto totem","inventorytotem","HoverTotem","hover totem","legittotem",
     "autopot","auto pot","speedPotSlot","strengthPotSlot","autoarmor","auto armor",
     "AutoPotRefill","AutoMace","MaceSwap","SpearSwap","StunSlam",
@@ -226,7 +218,7 @@ $SuspiciousPatterns = @(
     "Breaking shield with axe...","ShieldDisabler",
     # Aim / Rotations
     "aimassist","aim assist","triggerbot","trigger bot",
-    "SilentRotations","Silent Rotations","SmoothRotations","Smooth Rotations",
+    "SilentRotations","Silent Rotations",
     "Rotation Speed","Use Easing","Easing Strength",
     # Lag / Spoof
     "pingspoof","ping spoof","FakeLag","fakePunch","Fake Punch","FakeInv","swapBackToOriginalSlot",
@@ -234,26 +226,22 @@ $SuspiciousPatterns = @(
     "webmacro","web macro","AntiWeb","AutoWeb","Places Webs On Enemies",
     # Misc cheat features
     "AutoDoubleHand","autodoublehand","auto double hand",
-    "AutoClicker","AutoFirework","ElytraSwap","ElytraSwap","FastXP","FastExp",
+    "AutoFirework","ElytraSwap","FastXP","FastExp",
     "PackSpoof","Antiknockback","catlean","AuthBypass","obfuscatedAuth",
-    "BaseFinder","invsee","ItemExploit","FreezePlayer","KeyPearl","LootYeeter",
+    "BaseFinder","ItemExploit","FreezePlayer","KeyPearl","LootYeeter",
     "setBlockBreakingCooldown","getBlockBreakingCooldown","blockBreakingCooldown",
-    "onBlockBreaking","setItemUseCooldown","setSelectedSlot",
-    "invokeDoAttack","invokeDoItemUse","invokeOnMouseButton",
-    "onPushOutOfBlocks","onIsGlowing","findKnockbackSword","attackRegisteredThisClick",
+    "onBlockBreaking","invokeDoAttack","invokeDoItemUse","invokeOnMouseButton",
+    "onPushOutOfBlocks","findKnockbackSword","attackRegisteredThisClick",
     "axespam","axe spam","selfdestruct","self destruct",
-    "lvstrng","dqrkis","Dqrkis Client","POT_CHEATS","arrayOfString",
-    "WalksyCrystalOptimizerMod","WalksyOptimizer","WalskyOptimizer","autoCrystalPlaceClock",
+    "lvstrng","dqrkis","Dqrkis Client","POT_CHEATS",
+    "WalksyCrystalOptimizerMod","WalksyOptimizer","WalskyOptimizer",
     "Automatically switches to sword when hitting with totem",
     "Failed to switch to mace after axe!",
-    # Config-style option strings (used inside cheat GUIs)
-    "Place Delay","Break Delay","Fast Mode","Place Chance","Break Chance",
-    "Stop On Kill","Damage Tick","damagetick","Anti Weakness","Particle Chance",
+    # Config-style option strings (very specific to cheat GUIs)
+    "Stop On Kill","damagetick","Anti Weakness","Particle Chance",
     "Trigger Key","Switch Delay","Totem Slot","Glowstone Delay","Glowstone Chance",
-    "Explode Delay","Explode Chance","Explode Slot","Only Charge","Reach Distance",
-    "Min Height","Min Fall Speed","Attack Delay","Breach Delay","Require Elytra",
-    "Activate Key","Click Simulation","On RMB","No Count Glitch",
-    "No Bounce","Place blocks faster","Anchor Macro",
+    "Explode Delay","Explode Chance","Explode Slot","Only Charge",
+    "No Count Glitch","No Bounce","Anchor Macro",
     # Fullwidth obfuscated variants
     "ＡｕｔｏＣｒｙｓｔａｌ","Ａｕｔｏ Ｃｒｙｓｔａｌ","ＡｕｔｏＨｉｔＣｒｙｓｔａｌ",
     "ＡｕｔｏＡｎｃｈｏｒ","Ａｕｔｏ Ａｎｃｈｏｒ","ＤｏｕｂｌｅＡｎｃｈｏｒ","Ｄｏｕｂｌｅ Ａｎｃｈｏｒ",
@@ -311,71 +299,75 @@ $knownCheatFileTokens = @(
 )
 
 # Deep cheat string list — scanned inside class bytecode and config files
+# Only very specific strings that would ONLY appear in cheat code, not legitimate mods
 $cheatStrings = @(
+    # Crystal automation — very specific to cheat clients
     "AutoCrystal","autocrystal","auto crystal","cw crystal","dontPlaceCrystal","dontBreakCrystal",
-    "AutoHitCrystal","autohitcrystal","canPlaceCrystalServer","healPotSlot",
-    "AutoAnchor","autoanchor","auto anchor","DoubleAnchor","hasGlowstone","HasAnchor",
+    "AutoHitCrystal","autohitcrystal","canPlaceCrystalServer","healPotSlot","autoCrystalPlaceClock",
+    "EndCrystalItemMixin","LWFH Crystal",
+    # Anchor automation
+    "AutoAnchor","autoanchor","auto anchor","DoubleAnchor","HasAnchor",
     "anchortweaks","anchor macro","safe anchor","safeanchor","SafeAnchor","AirAnchor","anchorMacro",
+    # Totem / pot cheats
     "AutoTotem","autototem","auto totem","InventoryTotem","inventorytotem","HoverTotem","hover totem","legittotem",
-    "AutoPot","autopot","auto pot","speedPotSlot","strengthPotSlot","AutoArmor","autoarmor","auto armor","AutoPotRefill",
-    "preventSwordBlockBreaking","preventSwordBlockAttack","ShieldDisabler","ShieldBreaker","Breaking shield with axe...",
+    "autopot","auto pot","speedPotSlot","strengthPotSlot","autoarmor","auto armor","AutoPotRefill",
+    # Shield breaking
+    "preventSwordBlockBreaking","preventSwordBlockAttack","ShieldDisabler","ShieldBreaker",
+    "Breaking shield with axe...",
+    # Mace / double hand
     "AutoDoubleHand","autodoublehand","auto double hand","Failed to switch to mace after axe!",
-    "AutoMace","MaceSwap","SpearSwap","StunSlam","JumpReset","axespam","axe spam",
-    "EndCrystalItemMixin","findKnockbackSword","attackRegisteredThisClick",
-    "AimAssist","aimassist","aim assist","triggerbot","trigger bot","Silent Rotations","SilentRotations",
+    "AutoMace","MaceSwap","SpearSwap","StunSlam",
+    # Combat automation specifics
+    "JumpReset","axespam","axe spam","findKnockbackSword","attackRegisteredThisClick",
+    "AimAssist","aimassist","aim assist","triggerbot","trigger bot","SilentRotations","Silent Rotations",
     "FakeInv","swapBackToOriginalSlot","FakeLag","fakePunch","Fake Punch",
+    # Known cheat tools
     "webmacro","web macro","AntiWeb","AutoWeb","lvstrng","dqrkis",
-    "WalksyCrystalOptimizerMod","WalksyOptimizer","WalskyOptimizer","autoCrystalPlaceClock",
-    "AutoFirework","ElytraSwap","FastXP","FastExp","NoJumpDelay",
+    "WalksyCrystalOptimizerMod","WalksyOptimizer","WalskyOptimizer",
+    # Cheat automation
+    "AutoFirework","ElytraSwap","NoJumpDelay",
     "PackSpoof","Antiknockback","catlean","AuthBypass","obfuscatedAuth","LicenseCheckMixin",
-    "BaseFinder","ItemExploit","FreezePlayer","LWFH Crystal","KeyPearl","LootYeeter","FastPlace","AutoBreach",
+    "BaseFinder","ItemExploit","FreezePlayer","KeyPearl","LootYeeter","FastPlace","AutoBreach",
     "setBlockBreakingCooldown","getBlockBreakingCooldown","blockBreakingCooldown",
-    "onBlockBreaking","setItemUseCooldown","setSelectedSlot","invokeDoAttack","invokeDoItemUse","invokeOnMouseButton",
-    "onPushOutOfBlocks","onIsGlowing","Automatically switches to sword when hitting with totem",
-    "arrayOfString","POT_CHEATS","Dqrkis Client","Entity.isGlowing","Activate Key","Click Simulation","On RMB",
-    "No Count Glitch","No Bounce","NoBounce","Place Delay","Break Delay","Fast Mode","Place Chance",
-    "Break Chance","Stop On Kill","damagetick","Anti Weakness","Particle Chance","Trigger Key",
-    "Switch Delay","Totem Slot","Smooth Rotations","Use Easing","Easing Strength","While Use",
-    "Glowstone Delay","Glowstone Chance","Explode Delay","Explode Chance","Explode Slot","Only Charge",
-    "Anchor Macro","Reach Distance","Min Height","Min Fall Speed","Attack Delay","Breach Delay",
-    "Require Elytra","Auto Switch Back","Check Line of Sight","Only When Falling","Require Crit",
-    "Show Status Display","Stop On Crystal","Check Shield","On Pop","Check Players","Predict Crystals",
-    "Check Aim","Check Items","Activates Above","Blatant","Force Totem","Stay Open For",
-    "Auto Inventory Totem","Only On Pop","Vertical Speed","Hover Totem","Swap Speed","Strict One-Tick",
-    "Mace Priority","Min Totems","Min Pearls","Totem First","Drop Interval","Random Pattern","Loot Yeeter",
-    "Horizontal Aim Speed","Vertical Aim Speed","Include Head","Web Delay","Holding Web",
-    "Not When Affects Player","Hit Delay","Require Hold Axe","placeInterval","breakInterval","stopOnKill",
-    "activateOnRightClick","holdCrystal","Macro Key",
-    "KillAura","ClickAura","MultiAura","ForceField","LegitAura","AimBot","AutoAim","SilentAim","AimLock","HeadSnap",
-    "CrystalAura","AnchorAura","AnchorFill","AnchorPlace","BedAura","AutoBed","BedBomb","BedPlace",
-    "BowAimbot","BowSpam","AutoBow","AutoCrit","CritBypass","AlwaysCrit","CriticalHit",
-    "ReachHack","ExtendReach","LongReach","HitboxExpand","AntiKB","NoKnockback","GrimVelocity","GrimDisabler",
-    "VelocitySpoof","KBReduce","OffhandTotem","TotemSwitch","AutoWeapon","AutoSword","AutoCity","Burrow","SelfTrap",
-    "HoleFiller","AntiSurround","AntiBurrow","WTap","TargetStrafe","AutoGap","AutoPearl",
-    "FlyHack","CreativeFlight","BoatFly","PacketFly","AirJump","SpeedHack","BHop","BunnyHop",
-    "AntiFall","NoFallDamage","StepHack","FastClimb","AutoStep","HighStep","WaterWalk","LiquidWalk","LavaWalk",
-    "NoSlow","NoSlowdown","NoWeb","NoSoulSand","WallHack","ElytraSpeed","InstantElytra",
-    "ScaffoldWalk","FastBridge","AutoBridge","Nuker","NukerLegit","InstantBreak","GhostHand","NoSwing",
-    "PlaceAssist","AirPlace","AutoPlace","InstantPlace","PlayerESP","MobESP","ItemESP","StorageESP","ChestESP",
-    "Tracers","NameTagsHack","XRayHack","OreFinder","CaveFinder","OreESP","NewChunks","TunnelFinder",
-    "TargetHUD","ReachDisplay","DoubleClicker","JitterClick","ButterflyClick","CPSBoost",
-    "ChestStealer","InvManager","InvMovebypass","AutoSprint","AntiAFK","FakeLatency","FakePing",
-    "SpoofRotation","PositionSpoof","GameSpeed","SpeedTimer",
+    "onBlockBreaking","invokeDoAttack","invokeDoItemUse","invokeOnMouseButton",
+    "onPushOutOfBlocks","Automatically switches to sword when hitting with totem",
+    "POT_CHEATS","Dqrkis Client",
+    # Cheat GUI option strings — these are very specific to cheat config screens
+    "Stop On Kill","damagetick","Particle Chance","Trigger Key",
+    "Switch Delay","Totem Slot","Glowstone Delay","Glowstone Chance",
+    "Explode Delay","Explode Chance","Explode Slot","Only Charge",
+    "No Count Glitch","NoBounce","No Bounce","Anchor Macro",
+    "Auto Inventory Totem","Strict One-Tick","Mace Priority","Min Totems","Min Pearls",
+    "Totem First","Loot Yeeter","holdCrystal","stopOnKill","placeInterval","breakInterval",
+    "activateOnRightClick",
+    # Kill aura / combat cheats
+    "KillAura","ClickAura","MultiAura","ForceField","LegitAura","SilentAim","AimLock",
+    "CrystalAura","AnchorAura","BedAura","BedBomb","BedPlace","BowAimbot",
+    "CritBypass","AlwaysCrit",
+    "ReachHack","ExtendReach","LongReach","HitboxExpand","AntiKB",
+    "OffhandTotem","TotemSwitch","AutoCity","SelfTrap",
+    "HoleFiller","AntiSurround","AntiBurrow","WTap","TargetStrafe",
+    "PacketFly","SpeedHack",
+    "NameTagsHack","XRayHack",
+    "ChestStealer","InvMovebypass",
     "GrimBypass","VulcanBypass","MatrixBypass","AACBypass","VerusDisabler","IntaveBypass","WatchdogBypass",
     "PacketMine","PacketWalk","PacketSneak","PacketCancel","PacketDupe","PacketSpam",
     "SelfDestruct","HideClient","SessionStealer","TokenLogger","TokenGrabber","DiscordToken",
     "ReverseShell","C2Server","KeyLogger","StashFinder","TrailFinder",
+    # Libraries that only appear in cheats
     "imgui.binding","imgui.gl3","imgui.glfw","JNativeHook","GlobalScreen","NativeKeyListener",
     "client-refmap.json","cheat-refmap.json","phantom-refmap.json",
     "aHR0cDovL2FwaS5ub3ZhY2xpZW50LmxvbC93ZWJob29rLnR4dA==",
+    # Cheat client packages
     "meteordevelopment","cc/novoline","com/alan/clients","club/maxstats","wtf/moonlight",
     "me/zeroeightsix/kami","net/ccbluex","today/opai","net/minecraft/injection",
     "org/chainlibs/module/impl/modules","xyz/greaj","com/cheatbreaker",
     "doomsdayclient","DoomsdayClient","doomsday.jar","novaclient","api.novaclient.lol",
-    "WalksyOptimizer","vape.gg","vapeclient","VapeClient","VapeLite","intent.store","IntentClient",
+    "vape.gg","vapeclient","VapeClient","VapeLite","intent.store","IntentClient",
     "rise.today","riseclient.com","meteor-client","meteorclient","meteordevelopment.meteorclient",
-    "liquidbounce","fdp-client","net.ccbluex","novoware","novoclient","aristois","impactclient","azura",
-    "pandaware","moonClient","astolfo","futureClient","konas","rusherhack","inertia","exhibition",
+    "liquidbounce","fdp-client","net.ccbluex","novoware","novoclient","azura",
+    "pandaware","moonClient","astolfo","futureClient","konas","rusherhack","exhibition",
+    # Malware strings
     "sessionstealer","tokengrabber","webhookstealer","cookiethief","discordstealer","keylogger",
     "iplogger","cryptominer","reverseShell","backdoormod","exploitmod","ratmod","ransomware",
     "sendWebhook","exfiltrate","connectBack","callHome","grabToken","stealSession","accountstealer",
@@ -384,23 +376,25 @@ $cheatStrings = @(
     "crasher","lagmachine","booksploit","signcrasher","entityspammer","nukermod","worldnuker",
     "tntmod","bedexplode","anchorexplode","injectClass","modifyBytecode","hookMethod",
     "attachAgent","VirtualMachine.attach",
+    # Obfuscation markers
     "FLOW_OBFUSCATION","STRING_ENCRYPTION","RESOURCE_ENCRYPTION",
     "skidfuscator","me/itzsomebody","radon/transform","bozar/","paramorphism","zelix/klassmaster",
     "allatori","dasho","com/icqm/smoke","dev.krypton","dev.gambleclient","com.cheatbreaker",
+    # AC bypass
     "spoofVersion","brandOverride","overrideBrand","fakeClientBrand","brandSpoof","versionSpoof",
     "cancelPacket","dropPacket","suppressPacket","blockPacket","spoofPacket","injectPacket",
     "sendFakePacket","sendSilentPacket","bypassAC","bypass_ac","evadeAC","evadeAnticheat",
     "isGrimAC","isNoCheat","isAAC","isSpartanAC","isIntave","grimBypass","ncpBypass","aacBypass",
-    "spartanBypass","checkAnticheat","detectAnticheat","getAnticheat","GrimBypass","NCPBypass",
-    "AACBypass","IntaveBypass",
+    "spartanBypass","GrimBypass","NCPBypass","AACBypass","IntaveBypass",
     "setTimerSpeed","timerSpeed","Timer.timerSpeed","setTickRate",
     "overrideTickRate","fakeTickCount","tickBoost","hitboxExpand","expandHitbox",
     "suppressKnockback","cancelKnockback","noKnockback","setVelocity(0","zeroVelocity","ignoreKnockback",
     "antiKnockback","KnockbackModifier","noVelocity",
     "renderPlayerSpoofed","spoofRender","hideFromRender",
     "fakeGlowing","GlowBypass","glowBypass","baritone.bypass","pathfindBypass","suppressPathfind",
-    "bypassLicense","fakeAuth","spoofSession","AltManager","grimac","GrimAC","grim-api","ac.grim",
-    "game.grim","setGrimFlag","rotationBypass","fakeYaw","fakePitch","spoofYaw","spoofPitch",
+    "bypassLicense","fakeAuth","spoofSession","AltManager","setGrimFlag","rotationBypass",
+    "fakeYaw","fakePitch","spoofYaw","spoofPitch",
+    # Fullwidth obfuscated variants
     "ＡｕｔｏＣｒｙｓｔａｌ","Ａｕｔｏ Ｃｒｙｓｔａｌ","ＡｕｔｏＨｉｔＣｒｙｓｔａｌ","ＡｕｔｏＡｎｃｈｏｒ","Ａｕｔｏ Ａｎｃｈｏｒ",
     "ＤｏｕｂｌｅＡｎｃｈｏｒ","ＳａｆｅＡｎｃｈｏｒ","Ｓａｆｅ Ａｎｃｈｏｒ","Ａｎｃｈｏｒ Ｍａｃｒｏ","ＡｕｔｏＴｏｔｅｍ",
     "Ａｕｔｏ Ｔｏｔｅｍ","ＨｏｖｅｒＴｏｔｅｍ","ＩｎｖｅｎｔｏｒｙＴｏｔｅｍ","ＡｕｔｏＰｏｔ","Ａｕｔｏ Ｐｏｔ",
@@ -512,16 +506,53 @@ $whitelistedFileTokens = @(
 # (too broad / too common in legitimate mods to flag everywhere)
 $whitelistSuppressedPatterns = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 @(
-    "AutoSprint","AutoSneak","AutoJump","AutoWalk","AutoRespawn",
-    "NoFall","NoSlow","Timer","Strafe","FastBridge","Scaffold",
-    "FullBright","XRay","CaveFinder","Freecam",
-    "setSelectedSlot","setItemUseCooldown",
+    # Movement words used by dozens of legitimate QoL mods
+    "AutoSprint","AutoSneak","AutoJump","AutoWalk","AutoRespawn","AutoFish",
+    "AutoTool","AutoBow","AutoDrop","AutoFarm","AutoEat","AutoMine",
+    "AutoSword","AutoStep","AutoBridge","AutoPearl","AutoGap",
+    "NoFall","NoSlow","NoWeb","NoFallDamage","AntiFall",
+    "FastBridge","Scaffold","Strafe","Freecam","FullBright",
+    "CaveFinder","XRay","Tracers","ElytraSpeed","FastLadder",
+    "FastPlace","Refill","FastXP","FastExp","Spider","Glide",
+    "Flight","Tower","Jesus","Dolphin","Clip","Phase","SafeWalk",
+    "EdgeSnap","IceSpeed","Bhop","BunnyHop","AirJump",
+    "HighStep","FastClimb","WaterWalk","LiquidWalk","LavaWalk",
+    # Overly generic single words that appear in tons of legitimate code
+    "Timer","Velocity","Reach","Hitboxes","Regen","Criticals",
+    "Derp","HeadRoll","LongJump","AntiBot","Impact","Entropy","Flux",
+    "Future","Ares","Freezer","Drip","Tenacity","Clamour","Vape",
+    "Asteria","Prestige","Xenon","Argon","Hellion","Virgin","Donut","Krypton",
+    "Sigma","Meteor","Aristois","inertia","Refill",
+    "WallHack","Wallhack","TargetHUD","ReachDisplay","NewChunks",
+    "TunnelFinder","OreFinder","OreESP","Tracers","InvManager",
+    "AntiAFK","FakeLatency","FakePing","SpoofRotation","PositionSpoof",
+    "GameSpeed","SpeedTimer","InvMovebypass","ChestSteal",
+    "AutoClicker","CriticalHit","AutoAim","AutoBow","AutoCrit","AutoSword",
+    "AutoWeapon","AutoCity","Burrow","SelfTrap","HoleFiller","AntiSurround",
+    "AntiBurrow","AutoBed","AirPlace","AutoPlace","InstantPlace","PlaceAssist",
+    "GhostHand","NoSwing","InstantBreak","NukerLegit","ScaffoldWalk",
+    "SpeedHack","FlyHack","CreativeFlight","StepHack","NoSlowdown","NoSoulSand",
+    "InstantElytra","HeadSnap","AimLock","TargetStrafe","AnchorFill","AnchorPlace",
+    "BedBomb","BedPlace","BowSpam","AlwaysCrit","LongReach","ExtendReach",
+    "ReachHack","HitboxExpand","OffhandTotem","TotemSwitch","BoatFly",
+    "CPSBoost","ButterflyClick","JitterClick","DoubleClicker",
+    # Reflection / network patterns common in legitimate mods
+    "setSelectedSlot","setItemUseCooldown","onIsGlowing",
     "HttpURLConnection","URLConnection","openConnection",
     "getDeclaredMethod","setAccessible","Class.forName",
-    "Unexpected network call in class",
-    "Suspicious reflection usage",
+    "Unexpected network call in class","Suspicious reflection usage",
+    # AC-related strings used by legitimate anticheat-aware mods
     "noKnockback","cancelKnockback","suppressKnockback",
-    "checkAnticheat","detectAnticheat","getAnticheat"
+    "checkAnticheat","detectAnticheat","getAnticheat",
+    "GrimAC","ac.grim","game.grim","imgui",
+    # Generic config words used in any mod's settings
+    "Place Delay","Break Delay","Fast Mode","Place Chance","Break Chance",
+    "Damage Tick","Reach Distance","Min Height","Min Fall Speed",
+    "Attack Delay","Breach Delay","Require Elytra","Activate Key",
+    "Click Simulation","On RMB","Place blocks faster",
+    "Smooth Rotations","SmoothRotations","arrayOfString",
+    # invsee is a common admin/utility mod
+    "invsee"
 ) | ForEach-Object { [void]$whitelistSuppressedPatterns.Add($_) }
 
 # ── Helper: verify mod identity via metadata inside the JAR ─────────────────
@@ -575,7 +606,9 @@ function Invoke-JarScan([string]$FilePath) {
     if (Get-ModWhitelisted -FilePath $FilePath) { return @() }
 
     function Add-FlagFiltered([string]$flag) {
-        [void]$found.Add($flag.Trim())
+        if (-not $whitelistSuppressedPatterns.Contains($flag.Trim())) {
+            [void]$found.Add($flag.Trim())
+        }
     }
 
     try {
