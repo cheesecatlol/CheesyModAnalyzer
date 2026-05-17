@@ -565,9 +565,16 @@ Write-Host ""
 Write-Host "  Scanning directory: " -NoNewline -ForegroundColor DarkGray
 Write-Host $modsPath -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  Found $($jarFiles.Count) JAR files to analyze" -ForegroundColor White
+Write-Host "  " -NoNewline
+Write-Host "Found $($jarFiles.Count) JAR files to analyze" -ForegroundColor White
 Write-Host ""
 Start-Sleep -Milliseconds 300
+
+$verified   = [System.Collections.Generic.List[hashtable]]::new()
+$unknown    = [System.Collections.Generic.List[hashtable]]::new()
+$suspicious = [System.Collections.Generic.List[hashtable]]::new()
+$hashMap    = @{}
+$srcMap     = @{}
 
 # ================================================================
 #  PASS 1 — HASH VERIFICATION
@@ -576,15 +583,21 @@ Start-Sleep -Milliseconds 300
 Write-Host "  " -NoNewline
 Write-Host "Pass 1" -NoNewline -ForegroundColor Yellow
 Write-Host " — Hash verification (Modrinth + Megabase)..." -ForegroundColor DarkGray
+Write-Host ""
 
-$verified   = [System.Collections.Generic.List[hashtable]]::new()
-$unknown    = [System.Collections.Generic.List[hashtable]]::new()
-$suspicious = [System.Collections.Generic.List[hashtable]]::new()
-$hashMap    = @{}
-$srcMap     = @{}
+$activeJars = $jarFiles | Where-Object { $_.Name -notlike "*.jar.disabled" }
+$i = 0
+foreach ($jar in $activeJars) {
+    $i++
+    $pct = [int](($i / $activeJars.Count) * 100)
+    $bar = "#" * [int]($pct / 5)
+    $empty = "-" * (20 - $bar.Length)
 
-foreach ($jar in $jarFiles) {
-    if ($jar.Name -like "*.jar.disabled") { continue }
+    Write-Host "`r  " -NoNewline
+    Write-Host "[$bar$empty]" -NoNewline -ForegroundColor Yellow
+    Write-Host " $pct% " -NoNewline -ForegroundColor DarkGray
+    Write-Host " $($jar.Name)                    " -NoNewline -ForegroundColor DarkGray
+
     $hash = Get-SHA1Hash -FilePath $jar.FullName
     $src  = Get-DownloadSource -FilePath $jar.FullName
     $hashMap[$jar.Name] = $hash
@@ -598,29 +611,196 @@ foreach ($jar in $jarFiles) {
     }
 }
 
+Write-Host "`r  " -NoNewline
+Write-Host "[####################]" -NoNewline -ForegroundColor Green
+Write-Host " 100% Done                                              " -ForegroundColor DarkGray
+Write-Host ""
+
 $verifiedNames = $verified | ForEach-Object { $_.File }
+$unverifiedJars = $activeJars | Where-Object { $verifiedNames -notcontains $_.Name }
 
 # ================================================================
 #  PASS 2 — DEEP SCAN UNVERIFIED
 # ================================================================
 
-$unverifiedJars = $jarFiles | Where-Object { $_.Name -notlike "*.jar.disabled" -and $verifiedNames -notcontains $_.Name }
-
 Write-Host "  " -NoNewline
 Write-Host "Pass 2" -NoNewline -ForegroundColor Yellow
 Write-Host " — Deep-scanning $($unverifiedJars.Count) unverified mod(s)..." -ForegroundColor DarkGray
+Write-Host ""
 
+$j = 0
 foreach ($jar in $unverifiedJars) {
+    $j++
+    Write-Host "  " -NoNewline
+    Write-Host "  Scanning " -NoNewline -ForegroundColor DarkGray
+    Write-Host "$($jar.Name)" -NoNewline -ForegroundColor White
+    Write-Host "..." -ForegroundColor DarkGray
+
     $patterns = Invoke-JarScan -FilePath $jar.FullName
     $hash     = $hashMap[$jar.Name]
     $src      = $srcMap[$jar.Name]
+
     if ($patterns.Count -gt 0) {
+        Write-Host "  " -NoNewline
+        Write-Host " SUSPICIOUS " -NoNewline -ForegroundColor White -BackgroundColor DarkRed
+        Write-Host " $($patterns.Count) pattern(s) found" -ForegroundColor Red
         $suspicious.Add(@{ File = $jar.Name; Hash = $hash; Patterns = $patterns; DlSource = $src })
     } else {
+        Write-Host "  " -NoNewline
+        Write-Host " UNKNOWN " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
+        Write-Host " No suspicious patterns" -ForegroundColor DarkGray
         $unknown.Add(@{ File = $jar.Name; Hash = $hash; DlSource = $src })
     }
+    Write-Host ""
 }
 
+if ($unverifiedJars.Count -eq 0) {
+    Write-Host "  All mods were verified in Pass 1 — skipping deep scan." -ForegroundColor DarkGray
+    Write-Host ""
+}
+
+# ================================================================
+#  PASS 3 — BYPASS/INJECTION SCAN
+# ================================================================
+
+Write-Host "  " -NoNewline
+Write-Host "Pass 3" -NoNewline -ForegroundColor Yellow
+Write-Host " — Bypass/injection scan on all $($activeJars.Count) mods..." -ForegroundColor DarkGray
+Write-Host ""
+
+$injected = [System.Collections.Generic.List[string]]::new()
+foreach ($jar in $activeJars) {
+    Write-Host "`r  Checking $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
+    Start-Sleep -Milliseconds 18
+    # Check for injection markers: modified manifests, agent premain, injected class names
+    try {
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
+        foreach ($entry in $zip.Entries) {
+            if ($entry.FullName -match "MANIFEST\.MF") {
+                if ($entry.Length -lt 100KB) {
+                    $stream = $entry.Open()
+                    $reader = [System.IO.StreamReader]::new($stream)
+                    $text   = $reader.ReadToEnd()
+                    $reader.Close(); $stream.Close()
+                    if ($text -match "Premain-Class|Agent-Class|Can-Redefine-Classes|Can-Retransform-Classes") {
+                        $injected.Add($jar.Name)
+                    }
+                }
+            }
+            if ($entry.FullName -match "-injected\.class$|-agent\.class$|JavaAgent") {
+                if ($injected -notcontains $jar.Name) { $injected.Add($jar.Name) }
+            }
+        }
+        $zip.Dispose()
+    } catch {}
+}
+Write-Host "`r  Scan complete.                                         " -ForegroundColor DarkGray
+if ($injected.Count -gt 0) {
+    Write-Host "  " -NoNewline
+    Write-Host " $($injected.Count) INJECTED MOD(S) DETECTED " -ForegroundColor White -BackgroundColor DarkRed
+    foreach ($n in $injected) { Write-Host "    - $n" -ForegroundColor Red }
+} else {
+    Write-Host "  " -NoNewline
+    Write-Host " No injection markers found " -ForegroundColor Black -BackgroundColor DarkGreen
+}
+Write-Host ""
+
+# ================================================================
+#  PASS 4 — OBFUSCATION ANALYSIS
+# ================================================================
+
+Write-Host "  " -NoNewline
+Write-Host "Pass 4" -NoNewline -ForegroundColor Yellow
+Write-Host " — Obfuscation analysis on all $($activeJars.Count) mods..." -ForegroundColor DarkGray
+Write-Host ""
+
+$obfuscated = [System.Collections.Generic.List[hashtable]]::new()
+foreach ($jar in $activeJars) {
+    Write-Host "`r  Analysing $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
+    Start-Sleep -Milliseconds 18
+    try {
+        $zip         = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
+        $classPaths  = $zip.Entries | Where-Object { $_.FullName -like "*.class" } | ForEach-Object { $_.FullName }
+        $total       = $classPaths.Count
+        $flags       = [System.Collections.Generic.List[string]]::new()
+
+        if ($total -gt 10) {
+            # Single-char package paths
+            $shortCount = ($classPaths | Where-Object {
+                $parts = $_.Split('/')
+                $parts.Count -ge 3 -and ($parts[0..($parts.Count-2)] | Where-Object { $_.Length -gt 2 }).Count -eq 0
+            }).Count
+            if ($shortCount / $total -gt 0.4) {
+                $flags.Add("Single-char package paths ($shortCount path segments)")
+            }
+
+            # Gibberish / no-vowel class names
+            $gibCount = ($classPaths | Where-Object {
+                $name = [System.IO.Path]::GetFileNameWithoutExtension($_)
+                $name.Length -ge 3 -and $name -notmatch '[aeiouAEIOU]'
+            }).Count
+            if ($gibCount / $total -gt 0.04) {
+                $pct2 = [int](($gibCount / $total) * 100)
+                $flags.Add("Gibberish class names ($pct2% have no vowels, $gibCount classes)")
+            }
+        }
+        $zip.Dispose()
+        if ($flags.Count -gt 0) { $obfuscated.Add(@{ File = $jar.Name; Flags = $flags }) }
+    } catch {}
+}
+Write-Host "`r  Analysis complete.                                       " -ForegroundColor DarkGray
+if ($obfuscated.Count -gt 0) {
+    Write-Host "  " -NoNewline
+    Write-Host " $($obfuscated.Count) OBFUSCATED MOD(S) " -ForegroundColor Black -BackgroundColor DarkYellow
+    foreach ($o in $obfuscated) {
+        Write-Host "    $($o.File)" -ForegroundColor Yellow
+        foreach ($f in $o.Flags) { Write-Host "      - $f" -ForegroundColor DarkGray }
+    }
+} else {
+    Write-Host "  " -NoNewline
+    Write-Host " No heavy obfuscation detected " -ForegroundColor Black -BackgroundColor DarkGreen
+}
+Write-Host ""
+
+# ================================================================
+#  PASS 5 — JVM AGENT SCAN
+# ================================================================
+
+Write-Host "  " -NoNewline
+Write-Host "Pass 5" -NoNewline -ForegroundColor Yellow
+Write-Host " — Scanning JVM for agents and injections..." -ForegroundColor DarkGray
+Write-Host ""
+
+$jvmIssues = [System.Collections.Generic.List[string]]::new()
+if ($procs) {
+    foreach ($proc in $procs) {
+        try {
+            $wmi     = Get-WmiObject Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction SilentlyContinue
+            $cmdLine = if ($wmi) { $wmi.CommandLine } else { "" }
+            if ($cmdLine -match "\-javaagent:") {
+                $agents = [regex]::Matches($cmdLine, '-javaagent:([^\s"]+)')
+                foreach ($a in $agents) {
+                    $agentPath = $a.Groups[1].Value
+                    # Ignore known legit agents
+                    if ($agentPath -notmatch "JetBrains|intellij|idea|eclipse|fabric-installer") {
+                        $jvmIssues.Add("Suspicious -javaagent: $agentPath")
+                    }
+                }
+            }
+            if ($cmdLine -match "\-Xbootclasspath|\-XX:+DisableAttachMechanism") {
+                $jvmIssues.Add("Suspicious JVM flag detected in process $($proc.Id)")
+            }
+        } catch {}
+    }
+}
+if ($jvmIssues.Count -gt 0) {
+    Write-Host "  " -NoNewline
+    Write-Host " JVM ISSUES DETECTED " -ForegroundColor White -BackgroundColor DarkRed
+    foreach ($issue in $jvmIssues) { Write-Host "    - $issue" -ForegroundColor Red }
+} else {
+    Write-Host "  " -NoNewline
+    Write-Host " JVM looks clean " -ForegroundColor Black -BackgroundColor DarkGreen
+}
 Write-Host ""
 
 # ================================================================
@@ -802,6 +982,24 @@ if ($suspicious.Count -eq 0) {
     }
 }
 
+# ── OBFUSCATED (summary) ───────────────────────────────────────
+if ($obfuscated.Count -gt 0) {
+    Write-Host ""
+    Write-Host $sep -ForegroundColor DarkYellow
+    Write-Host "  " -NoNewline
+    Write-Host " o " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
+    Write-Host "  OBFUSCATED MODS  ($($obfuscated.Count))" -ForegroundColor Yellow
+    Write-Host $sep -ForegroundColor DarkYellow
+    Write-Host ""
+    foreach ($o in $obfuscated) {
+        Write-Host "  " -NoNewline
+        Write-Host " ~ " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
+        Write-Host "  $($o.File)" -ForegroundColor Yellow
+        foreach ($f in $o.Flags) { Write-Host "       - $f" -ForegroundColor DarkGray }
+        Write-Host ""
+    }
+}
+
 # ================================================================
 #  SUMMARY
 # ================================================================
@@ -811,21 +1009,27 @@ Write-Host $sep -ForegroundColor Yellow
 Write-Host "  SUMMARY" -ForegroundColor Yellow
 Write-Host $sep -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  Total files scanned : " -NoNewline -ForegroundColor DarkGray; Write-Host "$($jarFiles.Count)" -ForegroundColor White
+Write-Host "  Total files scanned : " -NoNewline -ForegroundColor DarkGray; Write-Host "$($activeJars.Count)" -ForegroundColor White
 Write-Host "  Verified mods       : " -NoNewline -ForegroundColor DarkGray; Write-Host "$($verified.Count)" -ForegroundColor Green
 Write-Host "  Unknown mods        : " -NoNewline -ForegroundColor DarkGray; Write-Host "$($unknown.Count)" -ForegroundColor Yellow
 Write-Host "  Suspicious mods     : " -NoNewline -ForegroundColor DarkGray
 if ($suspicious.Count -gt 0) { Write-Host "$($suspicious.Count)" -ForegroundColor Red } else { Write-Host "0" -ForegroundColor Green }
+Write-Host "  Bypass/Injected     : " -NoNewline -ForegroundColor DarkGray
+if ($injected.Count -gt 0) { Write-Host "$($injected.Count)" -ForegroundColor Red } else { Write-Host "0" -ForegroundColor Green }
+Write-Host "  Obfuscated mods     : " -NoNewline -ForegroundColor DarkGray
+if ($obfuscated.Count -gt 0) { Write-Host "$($obfuscated.Count)" -ForegroundColor Yellow } else { Write-Host "0" -ForegroundColor Green }
+Write-Host "  JVM issues          : " -NoNewline -ForegroundColor DarkGray
+if ($jvmIssues.Count -gt 0) { Write-Host "$($jvmIssues.Count)" -ForegroundColor Red } else { Write-Host "0" -ForegroundColor Green }
 Write-Host ""
 Write-Host $sep -ForegroundColor Yellow
 Write-Host ""
 
-if ($suspicious.Count -gt 0) {
+if ($suspicious.Count -gt 0 -or $injected.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " !! SUSPICIOUS MODS DETECTED — check the results above !! " -ForegroundColor White -BackgroundColor DarkRed
-} elseif ($unknown.Count -gt 0) {
+} elseif ($unknown.Count -gt 0 -or $obfuscated.Count -gt 0) {
     Write-Host "  " -NoNewline
-    Write-Host " Unknown mods found — download mods only from CurseForge or Modrinth. " -ForegroundColor Black -BackgroundColor DarkYellow
+    Write-Host " Some mods could not be verified — stay cautious. " -ForegroundColor Black -BackgroundColor DarkYellow
 } else {
     Write-Host "  " -NoNewline
     Write-Host " All mods verified. Looking clean! " -ForegroundColor Black -BackgroundColor DarkGreen
@@ -836,8 +1040,8 @@ Write-Host "  Analysis complete! Thanks for using CheesyModAnalyzer " -NoNewline
 Write-Host "o" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Created by  : cheese cat" -ForegroundColor DarkGray
-Write-Host "  Discord     : cheese_cat0" -ForegroundColor DarkGray
-Write-Host "  GitHub      : cheesecatlol" -ForegroundColor DarkGray
+Write-Host "  Discord     : YOUR_DISCORD" -ForegroundColor DarkGray
+Write-Host "  GitHub      : YOUR_GITHUB" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host $sep -ForegroundColor DarkYellow
 Write-Host ""
