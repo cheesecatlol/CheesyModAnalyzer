@@ -121,14 +121,14 @@ $SuspiciousPatterns = @(
     "ClickAura","ShieldBreaker","ShieldDisabler","AxeSpam",
     # Movement — specific cheat names only
     "Antiknockback","NoKnockback","JumpReset","SprintReset","NoJumpDelay",
-    "LegitScaffold","BoatFly","ElytraFly","Phase","Clip",
+    "LegitScaffold","BoatFly","Phase","Clip",
     "BunnyHop","Bhop","AirJump","WallClimb",
     # Automation — specific cheat automation
     "AutoTotem","AutoDoubleHand","InventoryTotem","TotemHit",
     "PopSwitch","LagReach","Wtap","FakeLag","Blink","PacketFly",
     # Visual / ESP
     "BlockESP","PackSpoof","PingSpoof","FakeNick","FakeItem",
-    "ChestESP","PlayerESP","Wallhack","StorageESP","MobESP","ItemESP","HoleESP","ArmorESP",
+    "PlayerESP","Wallhack","StorageESP","MobESP","ItemESP","HoleESP","ArmorESP",
     "HealthTags","NameTags","Nametags",
     # World
     "ChestSteal","AutoClicker","Nuker",
@@ -136,7 +136,8 @@ $SuspiciousPatterns = @(
     "NoRender","AntiHunger","NameProtect",
     # Known clients / packages — only unambiguous names
     "dev.krypton","dev.gambleclient","PrestigeClient","DoomsdayClient",
-    "Wurst","Sigma","LiquidBounce","Salhack",
+    "net.wurstclient","wurstclient","wurst-client",
+    "Sigma","LiquidBounce","Salhack",
     "Nodus","Wolfram",
     "VapeClient","VapeLite","IntentClient","intent.store",
     "riseclient","rise.today","meteordevelopment","liquidbounce",
@@ -160,7 +161,7 @@ $SuspiciousPatterns = @(
     # Obfuscation / injection libraries
     "chainlibs","phantom-refmap","xyz.greaj","jnativehook",
     "KeyboardMixin","ClientPlayerInteractionManagerMixin","LicenseCheckMixin",
-    "Allatori","ZKM","Stringer","Branchlock","Caesium",
+    "Allatori","Stringer","Branchlock","Caesium",
     "me/zero/client","me/rigamortis","net/ccbluex","io/github/nevalackin",
     "FLOW_OBFUSCATION","STRING_ENCRYPTION","RESOURCE_ENCRYPTION",
     "skidfuscator","me/itzsomebody","radon/transform","bozar/","paramorphism","zelix/klassmaster",
@@ -558,7 +559,11 @@ $whitelistSuppressedPatterns = [System.Collections.Generic.HashSet[string]]::new
     # KeyboardMixin is used by any mod with keybind handling (e.g. push-to-talk)
     "KeyboardMixin",
     # Blink is used in UI/animation code — only meaningful alongside other cheat flags
-    "Blink"
+    "Blink",
+    # ElytraFly is a vanilla player state name used in animation mods
+    "ElytraFly",
+    # ChestESP and Wurst are too short/generic and cause bytecode false positives
+    "ChestESP","Wurst"
 ) | ForEach-Object { [void]$whitelistSuppressedPatterns.Add($_) }
 
 # ── Helper: verify mod identity via metadata inside the JAR ─────────────────
@@ -698,7 +703,10 @@ function Invoke-JarScan([string]$FilePath) {
                             $bms.Dispose()
                             foreach ($p in $SuspiciousPatterns) { if ($asc -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
                             foreach ($p in $cheatStrings)        { if ($asc -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
-                            if ($asc -match "Runtime\.exec|ProcessBuilder|cmd\.exe|/bin/sh") { Add-Flag "Runtime command execution" }
+                            $njHasExec    = $asc -match "Runtime\.exec|ProcessBuilder|cmd\.exe|/bin/sh"
+                            $njHasNet     = $asc -match "HttpURLConnection|OkHttpClient|URLConnection|openConnection"
+                            $njHasMalware = $asc -match "webhook|grabToken|stealToken|discord/token|reverseShell|connectBack"
+                            if ($njHasExec -and ($njHasNet -or $njHasMalware)) { Add-Flag "Runtime command execution" }
                             if ($asc -match "Class\.forName|getDeclaredMethod|setAccessible") { Add-FlagFiltered "Suspicious reflection usage" }
                             if ($asc -match "HttpURLConnection|OkHttpClient|URLConnection" -and
                                 $asc -notmatch "modrinth|curseforge|fabricmc|quiltmc") { Add-FlagFiltered "Unexpected network call in class" }
@@ -799,7 +807,13 @@ function Invoke-JarScan([string]$FilePath) {
                     }
 
                     # runtime exec / reflection abuse
-                    if ($ascii -match "Runtime\.exec|ProcessBuilder|cmd\.exe|/bin/sh") {
+                    # Only flag if combined with a network call or known malware string —
+                    # ProcessBuilder/Runtime.exec are used legitimately by mods that open
+                    # browsers, launchers, or system dialogs.
+                    $hasRuntimeExec = $ascii -match "Runtime\.exec|ProcessBuilder|cmd\.exe|/bin/sh"
+                    $hasNetworkCall = $ascii -match "HttpURLConnection|OkHttpClient|URLConnection|openConnection"
+                    $hasMalwareStr  = $ascii -match "webhook|grabToken|stealToken|discord/token|reverseShell|connectBack"
+                    if ($hasRuntimeExec -and ($hasNetworkCall -or $hasMalwareStr)) {
                         Add-Flag "Runtime command execution"
                     }
                     if ($ascii -match "Class\.forName|getDeclaredMethod|setAccessible") {
