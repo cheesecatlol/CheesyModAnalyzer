@@ -482,11 +482,65 @@ function Invoke-MegabaseLookup([string]$Hash) {
     return @{ Found = $false }
 }
 
+# ── Whitelisted JAR filename substrings (case-insensitive) ──────────────────
+# Mods/clients known to contain strings that look suspicious but are legitimate.
+# If a JAR filename contains any of these tokens, soft-flagging is suppressed
+# and only hard indicators (malware, injectors, known cheat packages) are kept.
+$whitelistedFileTokens = @(
+    # Feather Client mods
+    "feather","feathermc","feather-fabric","feather-forge",
+    # Essential / Cosmetica ecosystem
+    "essential","cosmetica","cosmetic","emotes","emotecraft",
+    # Common performance / QoL mods that may reference AC or packet internals
+    "sodium","lithium","phosphor","iris","indium","starlight",
+    "ferritecore","memoryleakfix","smoothboot","lazydfu",
+    "immediatelyfast","nvidium","modernfix","c2me",
+    # Replay / debug mods with legitimate network code
+    "replaymod","replay-mod","carpet","tweakeroo","itemscroller",
+    # Fabric / Quilt ecosystem internals that ship inside modpacks
+    "fabric-api","fabric_api","quilt-standard","quilted_fabric",
+    "modmenu","cloth-config","cloth_config","yacl","yet-another-config",
+    # Skin / rendering mods
+    "skinsrestorer","customskinloader","skinport",
+    # Legitimate totem / HUD mods (false-flag on totem strings)
+    "totemic","totemguard",
+    # FPS / optimization clients
+    "lunar","badlion","blc","labymod","laby-mod"
+)
+
+# Strings that are ONLY flagged on non-whitelisted JARs
+# (too broad / too common in legitimate mods to flag everywhere)
+$whitelistSuppressedPatterns = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+@(
+    "AutoSprint","AutoSneak","AutoJump","AutoWalk","AutoRespawn",
+    "NoFall","NoSlow","Timer","Strafe","FastBridge","Scaffold",
+    "FullBright","XRay","CaveFinder","Freecam",
+    "setSelectedSlot","setItemUseCooldown",
+    "HttpURLConnection","URLConnection","openConnection",
+    "getDeclaredMethod","setAccessible","Class.forName",
+    "Unexpected network call in class",
+    "Suspicious reflection usage",
+    "noKnockback","cancelKnockback","suppressKnockback",
+    "checkAnticheat","detectAnticheat","getAnticheat"
+) | ForEach-Object { [void]$whitelistSuppressedPatterns.Add($_) }
+
 function Invoke-JarScan([string]$FilePath) {
     $found = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
     # helpers
     function Add-Flag([string]$flag) { [void]$found.Add($flag.Trim()) }
+
+    # ── Check if this JAR is whitelisted ────────────────────────
+    $fileNameLower  = [System.IO.Path]::GetFileNameWithoutExtension($FilePath).ToLower()
+    $isWhitelisted  = $false
+    foreach ($token in $whitelistedFileTokens) {
+        if ($fileNameLower -like "*$token*") { $isWhitelisted = $true; break }
+    }
+
+    function Add-FlagFiltered([string]$flag) {
+        if ($isWhitelisted -and $whitelistSuppressedPatterns.Contains($flag)) { return }
+        [void]$found.Add($flag.Trim())
+    }
 
     try {
         $zip     = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
@@ -529,7 +583,7 @@ function Invoke-JarScan([string]$FilePath) {
             "dev/luna","me/stars","wtf/harvest","gg/essential/loader/stage0")
         foreach ($entry in $entries) {
             foreach ($root in $suspiciousRoots) {
-                if ($entry.FullName -like "$root/*") { Add-Flag "Suspicious package: $root" }
+                if ($entry.FullName -like "$root/*") { Add-FlagFiltered "Suspicious package: $root" }
             }
         }
 
@@ -539,7 +593,7 @@ function Invoke-JarScan([string]$FilePath) {
 
             # known string patterns in file paths
             foreach ($p in $SuspiciousPatterns) {
-                if ($name -match [regex]::Escape($p)) { Add-Flag $p }
+                if ($name -match [regex]::Escape($p)) { Add-FlagFiltered $p }
             }
 
             # Japanese/Chinese obfuscation in class names
@@ -557,10 +611,10 @@ function Invoke-JarScan([string]$FilePath) {
                         $reader.Close(); $stream.Close()
 
                         foreach ($p in $SuspiciousPatterns) {
-                            if ($text -match [regex]::Escape($p)) { Add-Flag $p }
+                            if ($text -match [regex]::Escape($p)) { Add-FlagFiltered $p }
                         }
                         foreach ($p in $cheatStrings) {
-                            if ($text -match [regex]::Escape($p)) { Add-Flag $p }
+                            if ($text -match [regex]::Escape($p)) { Add-FlagFiltered $p }
                         }
                         if ($JapaneseRegex.IsMatch($text))                         { Add-Flag "Japanese obfuscation" }
                         if ([regex]::IsMatch($text, "[\u4E00-\u9FFF]"))            { Add-Flag "Chinese obfuscation" }
@@ -601,10 +655,10 @@ function Invoke-JarScan([string]$FilePath) {
                     $ascii  = [System.Text.Encoding]::ASCII.GetString($bytes)
 
                     foreach ($p in $SuspiciousPatterns) {
-                        if ($ascii -match [regex]::Escape($p)) { Add-Flag $p }
+                        if ($ascii -match [regex]::Escape($p)) { Add-FlagFiltered $p }
                     }
                     foreach ($p in $cheatStrings) {
-                        if ($ascii -match [regex]::Escape($p)) { Add-Flag $p }
+                        if ($ascii -match [regex]::Escape($p)) { Add-FlagFiltered $p }
                     }
 
                     # runtime exec / reflection abuse
@@ -612,12 +666,12 @@ function Invoke-JarScan([string]$FilePath) {
                         Add-Flag "Runtime command execution"
                     }
                     if ($ascii -match "Class\.forName|getDeclaredMethod|setAccessible") {
-                        Add-Flag "Suspicious reflection usage"
+                        Add-FlagFiltered "Suspicious reflection usage"
                     }
                     # network calls inside class
                     if ($ascii -match "HttpURLConnection|OkHttpClient|URLConnection" -and
                         $ascii -notmatch "modrinth|curseforge|fabricmc|quiltmc") {
-                        Add-Flag "Unexpected network call in class"
+                        Add-FlagFiltered "Unexpected network call in class"
                     }
                 } catch {}
             }
@@ -842,10 +896,17 @@ if ($unverifiedJars.Count -eq 0) {
         $src      = $srcMap[$jar.Name]
 
         # Filename token check against known cheat clients
-        $fileNameLower = $jar.Name.ToLower()
-        foreach ($token in $knownCheatFileTokens) {
-            if ($fileNameLower -match [regex]::Escape($token.ToLower())) {
-                [void]$patterns.Add("Known cheat filename token: $token")
+        # Skip for whitelisted mods (e.g. feather-fabric, essential, sodium, etc.)
+        $fileNameLower    = [System.IO.Path]::GetFileNameWithoutExtension($jar.FullName).ToLower()
+        $isJarWhitelisted = $false
+        foreach ($wt in $whitelistedFileTokens) {
+            if ($fileNameLower -like "*$wt*") { $isJarWhitelisted = $true; break }
+        }
+        if (-not $isJarWhitelisted) {
+            foreach ($token in $knownCheatFileTokens) {
+                if ($fileNameLower -match [regex]::Escape($token.ToLower())) {
+                    [void]$patterns.Add("Known cheat filename token: $token")
+                }
             }
         }
 
