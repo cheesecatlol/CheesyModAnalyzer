@@ -136,7 +136,6 @@ $SuspiciousPatterns = @(
     "NoRender","AntiHunger","NameProtect",
     # Known clients / packages — only unambiguous names
     "dev.krypton","dev.gambleclient","PrestigeClient","DoomsdayClient",
-    "net.wurstclient","wurstclient","wurst-client",
     "Sigma","LiquidBounce","Salhack",
     "Nodus","Wolfram",
     "VapeClient","VapeLite","IntentClient","intent.store",
@@ -721,7 +720,8 @@ function Invoke-JarScan([string]$FilePath) {
         # ── 4. SUSPICIOUS PACKAGE ROOTS ─────────────────────────
         $suspiciousRoots = @("me/zero","me/alpha","io/github/nevalackin","wtf/zroger",
             "me/rigamortis","net/ccbluex","me/hwnd","xyz/qalcyo","me/odinaka",
-            "dev/luna","me/stars","wtf/harvest","gg/essential/loader/stage0")
+            "dev/luna","me/stars","wtf/harvest","gg/essential/loader/stage0",
+            "net/wurstclient","com/wurstclient")
         foreach ($entry in $entries) {
             foreach ($root in $suspiciousRoots) {
                 if ($entry.FullName -like "$root/*") { Add-FlagFiltered "Suspicious package: $root" }
