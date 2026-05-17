@@ -678,8 +678,11 @@ function Invoke-JarScan([string]$FilePath) {
                     }
 
                     # text file scan
+                    $njIsDictFile = $njName -match "(?i)(dict(ionar(y|ies))?|wordlist|words|spelling|hunspell|aspell|enchant)[^/]*\.(txt|dic|aff|json)$" `
+                                 -or $njName -match "(?i)/dicts?/[^/]+$" `
+                                 -or $njName -match "(?i)/words?/[^/]+\.txt$"
                     if (($njExt -in @(".json",".txt",".toml",".cfg",".properties")) -or ($njName -match "MANIFEST\.MF")) {
-                        if ($njEntry.Length -lt 2MB) {
+                        if ($njEntry.Length -lt 2MB -and -not $njIsDictFile) {
                             try {
                                 $s  = $njEntry.Open()
                                 $r  = [System.IO.StreamReader]::new($s, [System.Text.Encoding]::UTF8, $true)
@@ -723,6 +726,8 @@ function Invoke-JarScan([string]$FilePath) {
             "dev/luna","me/stars","wtf/harvest","gg/essential/loader/stage0",
             "net/wurstclient","com/wurstclient")
         foreach ($entry in $entries) {
+            # Only match actual class files — refmaps and JSON can reference package names legitimately
+            if ([System.IO.Path]::GetExtension($entry.FullName).ToLower() -ne ".class") { continue }
             foreach ($root in $suspiciousRoots) {
                 if ($entry.FullName -like "$root/*") { Add-FlagFiltered "Suspicious package: $root" }
             }
@@ -747,13 +752,29 @@ function Invoke-JarScan([string]$FilePath) {
 
             # ── 6. READ TEXT FILES FOR STRING MATCHES ───────────
             $ext = [System.IO.Path]::GetExtension($name).ToLower()
+            # Skip dictionary/wordlist files — they contain every word in the language
+            # and will false-flag on any short pattern string (e.g. "Nodus", "Printer")
+            $isDictFile = $name -match "(?i)(dict(ionar(y|ies))?|wordlist|words|spelling|hunspell|aspell|enchant)[^/]*\.(txt|dic|aff|json)$" `
+                       -or $name -match "(?i)/dicts?/[^/]+$" `
+                       -or $name -match "(?i)/words?/[^/]+\.txt$"
             if (($ext -in @(".json",".txt",".toml",".cfg",".properties")) -or ($name -match "MANIFEST\.MF")) {
-                if ($entry.Length -lt 2MB) {
+                if ($entry.Length -lt 2MB -and -not $isDictFile) {
                     try {
                         $stream = $entry.Open()
                         $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8, $true)
                         $text   = $reader.ReadToEnd()
                         $reader.Close(); $stream.Close()
+
+                        # Skip bare word lists — files where 90%+ of lines are a single word
+                        # (no spaces, no punctuation). Catches dictionaries not named "dict".
+                        if ($ext -eq ".txt" -and -not $isDictFile) {
+                            $lines     = $text -split "`n" | Where-Object { $_.Trim() -ne "" } | Select-Object -First 200
+                            if ($lines.Count -ge 50) {
+                                $wordLines = ($lines | Where-Object { $_.Trim() -match "^[A-Za-z''-]{1,30}$" }).Count
+                                if ($wordLines / $lines.Count -gt 0.90) { $isDictFile = $true }
+                            }
+                        }
+                        if ($isDictFile) { continue }
 
                         foreach ($p in $SuspiciousPatterns) {
                             if ($text -match [regex]::Escape($p)) { Add-FlagFiltered $p }
