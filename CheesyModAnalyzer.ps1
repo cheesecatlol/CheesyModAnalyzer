@@ -297,10 +297,10 @@ function Invoke-MegabaseLookup([string]$Hash) {
 }
 
 function Invoke-JarScan([string]$FilePath) {
-    $found = [System.Collections.Generic.List[string]]::new()
+    $found = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
     # helpers
-    function Add-Flag([string]$flag) { if ($found -notcontains $flag) { [void]$found.Add($flag) } }
+    function Add-Flag([string]$flag) { [void]$found.Add($flag.Trim()) }
 
     try {
         $zip     = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
@@ -436,7 +436,7 @@ function Invoke-JarScan([string]$FilePath) {
         Write-Host ""
         Write-Host "    [WARN] Could not open JAR: $($_.Exception.Message)" -ForegroundColor DarkYellow
     }
-    return $found
+    return ($found | Select-Object -Unique)
 }
 
 # ================================================================
