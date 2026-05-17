@@ -607,10 +607,65 @@ function Invoke-JarScan([string]$FilePath) {
             Add-Flag "Single-char class names (heavy obfuscation)"
         }
 
-        # ── 3. NESTED JAR / CLASS INSIDE JAR ────────────────────
+        # ── 3. NESTED JAR / CLASS INSIDE JAR — deep scan ────────
         $nestedJars = $entries | Where-Object { $_.FullName -like "*.jar" -and $_.FullName -notlike "META-INF/*" }
         foreach ($nj in $nestedJars) {
             Add-Flag "Nested JAR: $($nj.FullName)"
+            # Extract nested JAR into memory and scan its entries
+            try {
+                $njStream = $nj.Open()
+                $njMs     = [System.IO.MemoryStream]::new()
+                $njStream.CopyTo($njMs)
+                $njStream.Close()
+                $njMs.Position = 0
+
+                $njZip = [System.IO.Compression.ZipArchive]::new($njMs, [System.IO.Compression.ZipArchiveMode]::Read)
+                foreach ($njEntry in $njZip.Entries) {
+                    $njName = $njEntry.FullName
+                    $njExt  = [System.IO.Path]::GetExtension($njName).ToLower()
+
+                    # path-level pattern scan
+                    foreach ($p in $SuspiciousPatterns) {
+                        if ($njName -match [regex]::Escape($p)) { Add-FlagFiltered $p }
+                    }
+                    if ($JapaneseRegex.IsMatch($njName)) { Add-Flag "Japanese obfuscation" }
+                    if ([regex]::IsMatch($njName, "[\u4E00-\u9FFF]")) { Add-Flag "Chinese obfuscation" }
+
+                    # text file scan
+                    if (($njExt -in @(".json",".txt",".toml",".cfg",".properties")) -or ($njName -match "MANIFEST\.MF")) {
+                        if ($njEntry.Length -lt 2MB) {
+                            try {
+                                $s  = $njEntry.Open()
+                                $r  = [System.IO.StreamReader]::new($s, [System.Text.Encoding]::UTF8, $true)
+                                $t  = $r.ReadToEnd(); $r.Close(); $s.Close()
+                                foreach ($p in $SuspiciousPatterns) { if ($t -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
+                                foreach ($p in $cheatStrings)        { if ($t -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
+                                if ($JapaneseRegex.IsMatch($t))                         { Add-Flag "Japanese obfuscation" }
+                                if ([regex]::IsMatch($t, "[\u4E00-\u9FFF]"))            { Add-Flag "Chinese obfuscation" }
+                            } catch {}
+                        }
+                    }
+
+                    # class bytecode scan
+                    if ($njExt -eq ".class" -and $njEntry.Length -lt 512KB) {
+                        try {
+                            $s    = $njEntry.Open()
+                            $bms  = [System.IO.MemoryStream]::new()
+                            $s.CopyTo($bms); $s.Close()
+                            $asc  = [System.Text.Encoding]::ASCII.GetString($bms.ToArray())
+                            $bms.Dispose()
+                            foreach ($p in $SuspiciousPatterns) { if ($asc -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
+                            foreach ($p in $cheatStrings)        { if ($asc -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
+                            if ($asc -match "Runtime\.exec|ProcessBuilder|cmd\.exe|/bin/sh") { Add-Flag "Runtime command execution" }
+                            if ($asc -match "Class\.forName|getDeclaredMethod|setAccessible") { Add-FlagFiltered "Suspicious reflection usage" }
+                            if ($asc -match "HttpURLConnection|OkHttpClient|URLConnection" -and
+                                $asc -notmatch "modrinth|curseforge|fabricmc|quiltmc") { Add-FlagFiltered "Unexpected network call in class" }
+                        } catch {}
+                    }
+                }
+                $njZip.Dispose()
+                $njMs.Dispose()
+            } catch {}
         }
 
         # ── 4. SUSPICIOUS PACKAGE ROOTS ─────────────────────────
@@ -823,8 +878,20 @@ if ($autoFolder) {
     }
     Write-Host "  Enter the path to your mods folder:" -ForegroundColor DarkGray
     Write-Host ""
-    $userInput = Read-Host "  Path"
-    $modsPath  = $userInput.Trim()
+    do {
+        $userInput = Read-Host "  Path"
+        $modsPath  = $userInput.Trim()
+        if ([string]::IsNullOrWhiteSpace($modsPath)) {
+            Write-Host "  [ERROR] No path entered. Please enter the full path to your mods folder." -ForegroundColor Red
+        }
+    } while ([string]::IsNullOrWhiteSpace($modsPath))
+}
+
+if ([string]::IsNullOrWhiteSpace($modsPath)) {
+    Write-Host ""
+    Write-Host "  [ERROR] No mods folder path was provided." -ForegroundColor Red
+    Read-Host "  Press Enter to exit"
+    exit 1
 }
 
 if (-not (Test-Path $modsPath)) {
@@ -893,9 +960,7 @@ foreach ($jar in $activeJars) {
     }
 }
 
-Write-Host "`r  " -NoNewline
-Write-Host "[####################]" -NoNewline -ForegroundColor Green
-Write-Host " 100% Done                                              " -ForegroundColor DarkGray
+Write-Host "`r  [####################] 100% Done                                              " -ForegroundColor Green
 Write-Host ""
 
 $verifiedNames = $verified | ForEach-Object { $_.File }
