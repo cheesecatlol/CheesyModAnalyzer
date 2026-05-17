@@ -1040,8 +1040,8 @@ Write-Host "  Analysis complete! Thanks for using CheesyModAnalyzer " -NoNewline
 Write-Host "o" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Created by  : cheese cat" -ForegroundColor DarkGray
-Write-Host "  Discord     : YOUR_DISCORD" -ForegroundColor DarkGray
-Write-Host "  GitHub      : YOUR_GITHUB" -ForegroundColor DarkGray
+Write-Host "  Discord     : cheese_cat0" -ForegroundColor DarkGray
+Write-Host "  GitHub      : cheesecatlol" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host $sep -ForegroundColor DarkYellow
 Write-Host ""
