@@ -498,6 +498,8 @@ $whitelistedFileTokens = @(
     "skinsrestorer","customskinloader","skinport",
     # Legitimate totem / HUD mods (false-flag on totem strings)
     "totemic","totemguard",
+    # Zoom mods — WI-Zoom ships a net/wurstclient compat class intentionally
+    "wi-zoom","wizoom","wi_zoom","zoom","zoomify","okzoomer",
     # FPS / optimization clients
     "lunar","badlion","blc","labymod","laby-mod"
 )
@@ -578,10 +580,12 @@ function Get-ModWhitelisted([string]$FilePath) {
         if ($fmj) {
             $sr  = [System.IO.StreamReader]::new($fmj.Open())
             $raw = $sr.ReadToEnd(); $sr.Close()
-            if ($raw -match '"id"\s*:\s*"([^"]+)"') {
-                $modId = $Matches[1].ToLower()
+            $fieldsToCheck = @()
+            if ($raw -match '"id"\s*:\s*"([^"]+)"')   { $fieldsToCheck += $Matches[1].ToLower() }
+            if ($raw -match '"name"\s*:\s*"([^"]+)"') { $fieldsToCheck += $Matches[1].ToLower() }
+            foreach ($field in $fieldsToCheck) {
                 foreach ($token in $whitelistedFileTokens) {
-                    if ($modId -like "*$($token.ToLower())*") { $z.Dispose(); return $true }
+                    if ($field -like "*$($token.ToLower())*") { $z.Dispose(); return $true }
                 }
             }
         }
