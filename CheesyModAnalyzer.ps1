@@ -942,10 +942,7 @@ foreach ($jar in $activeJars) {
     $bar = "#" * [int]($pct / 5)
     $empty = "-" * (20 - $bar.Length)
 
-    Write-Host "`r  " -NoNewline
-    Write-Host "[$bar$empty]" -NoNewline -ForegroundColor Yellow
-    Write-Host " $pct% " -NoNewline -ForegroundColor DarkGray
-    Write-Host " $($jar.Name)                    " -NoNewline -ForegroundColor DarkGray
+    Write-Host "`r  [$bar$empty] $pct%  $($jar.Name)                    " -NoNewline -ForegroundColor Yellow
 
     $hash = Get-SHA1Hash -FilePath $jar.FullName
     $src  = Get-DownloadSource -FilePath $jar.FullName
@@ -964,33 +961,27 @@ Write-Host "`r  [####################] 100% Done                                
 Write-Host ""
 
 $verifiedNames = $verified | ForEach-Object { $_.File }
-$unverifiedJars = $activeJars | Where-Object { $verifiedNames -notcontains $_.Name }
 
 # ================================================================
-#  PASS 2 — DEEP SCAN UNVERIFIED
+#  PASS 2 — DEEP SCAN ALL MODS
 # ================================================================
 
 Write-Host "  " -NoNewline
 Write-Host "Pass 2" -NoNewline -ForegroundColor Yellow
-Write-Host " — Deep-scanning $($unverifiedJars.Count) unverified mod(s)..." -ForegroundColor DarkGray
+Write-Host " — Deep-scanning all $($activeJars.Count) mod(s)..." -ForegroundColor DarkGray
 Write-Host ""
 
-if ($unverifiedJars.Count -eq 0) {
-    Write-Host "  " -NoNewline
-    Write-Host "[####################]" -NoNewline -ForegroundColor Green
-    Write-Host " 100% Done — All mods verified in Pass 1, skipping deep scan." -ForegroundColor DarkGray
+if ($activeJars.Count -eq 0) {
+    Write-Host "  No active mods to deep scan." -ForegroundColor DarkGray
     Write-Host ""
 } else {
     $j = 0
-    foreach ($jar in $unverifiedJars) {
+    foreach ($jar in $activeJars) {
         $j++
-        $pct2  = [int](($j / $unverifiedJars.Count) * 100)
+        $pct2  = [int](($j / $activeJars.Count) * 100)
         $bar2  = "#" * [int]($pct2 / 5)
         $emp2  = "-" * (20 - $bar2.Length)
-        Write-Host "`r  " -NoNewline
-        Write-Host "[$bar2$emp2]" -NoNewline -ForegroundColor Yellow
-        Write-Host " $pct2% " -NoNewline -ForegroundColor DarkGray
-        Write-Host " $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
+        Write-Host "`r  [$bar2$emp2] $pct2%  $($jar.Name)                              " -NoNewline -ForegroundColor Yellow
 
         $patterns = Invoke-JarScan -FilePath $jar.FullName
         $hash     = $hashMap[$jar.Name]
@@ -1011,13 +1002,11 @@ if ($unverifiedJars.Count -eq 0) {
 
         if ($patterns.Count -gt 0) {
             $suspicious.Add(@{ File = $jar.Name; Hash = $hash; Patterns = $patterns; DlSource = $src })
-        } else {
+        } elseif ($verifiedNames -notcontains $jar.Name) {
             $unknown.Add(@{ File = $jar.Name; Hash = $hash; DlSource = $src })
         }
     }
-    Write-Host "`r  " -NoNewline
-    Write-Host "[####################]" -NoNewline -ForegroundColor Green
-    Write-Host " 100% Done                                                    " -ForegroundColor DarkGray
+    Write-Host "`r  [####################] 100% Done                                                    " -ForegroundColor Green
     Write-Host ""
     foreach ($m in $suspicious) {
         Write-Host "  " -NoNewline
@@ -1049,9 +1038,7 @@ foreach ($jar in $activeJars) {
     $bar3 = "#" * [int]($pct3 / 5)
     $emp3 = "-" * (20 - $bar3.Length)
     Write-Host "`r  " -NoNewline
-    Write-Host "[$bar3$emp3]" -NoNewline -ForegroundColor Yellow
-    Write-Host " $pct3% " -NoNewline -ForegroundColor DarkGray
-    Write-Host " $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
+    Write-Host "`r  [$bar3$emp3] $pct3%  $($jar.Name)                              " -NoNewline -ForegroundColor Yellow
 
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
@@ -1072,9 +1059,7 @@ foreach ($jar in $activeJars) {
         $zip.Dispose()
     } catch {}
 }
-Write-Host "`r  " -NoNewline
-Write-Host "[####################]" -NoNewline -ForegroundColor Green
-Write-Host " 100% Done                                                    " -ForegroundColor DarkGray
+Write-Host "`r  [####################] 100% Done                                                    " -ForegroundColor Green
 Write-Host ""
 if ($injected.Count -gt 0) {
     Write-Host "  " -NoNewline
@@ -1102,10 +1087,7 @@ foreach ($jar in $activeJars) {
     $pct4 = [int](($l / $activeJars.Count) * 100)
     $bar4 = "#" * [int]($pct4 / 5)
     $emp4 = "-" * (20 - $bar4.Length)
-    Write-Host "`r  " -NoNewline
-    Write-Host "[$bar4$emp4]" -NoNewline -ForegroundColor Yellow
-    Write-Host " $pct4% " -NoNewline -ForegroundColor DarkGray
-    Write-Host " $($jar.Name)                              " -NoNewline -ForegroundColor DarkGray
+    Write-Host "`r  [$bar4$emp4] $pct4%  $($jar.Name)                              " -NoNewline -ForegroundColor Yellow
 
     # Skip whitelisted JARs — verified via mod metadata, not filename
     if (Get-ModWhitelisted -FilePath $jar.FullName) { continue }
@@ -1135,9 +1117,7 @@ foreach ($jar in $activeJars) {
         if ($flags.Count -gt 0) { $obfuscated.Add(@{ File = $jar.Name; Flags = $flags }) }
     } catch {}
 }
-Write-Host "`r  " -NoNewline
-Write-Host "[####################]" -NoNewline -ForegroundColor Green
-Write-Host " 100% Done                                                    " -ForegroundColor DarkGray
+Write-Host "`r  [####################] 100% Done                                                    " -ForegroundColor Green
 Write-Host ""
 if ($obfuscated.Count -gt 0) {
     Write-Host "  " -NoNewline
@@ -1169,10 +1149,7 @@ foreach ($step in $jvmSteps) {
     $pct5 = [int](($m2 / $jvmSteps.Count) * 100)
     $bar5 = "#" * [int]($pct5 / 5)
     $emp5 = "-" * (20 - $bar5.Length)
-    Write-Host "`r  " -NoNewline
-    Write-Host "[$bar5$emp5]" -NoNewline -ForegroundColor Yellow
-    Write-Host " $pct5% " -NoNewline -ForegroundColor DarkGray
-    Write-Host " $step                              " -NoNewline -ForegroundColor DarkGray
+    Write-Host "`r  [$bar5$emp5] $pct5%  $step                              " -NoNewline -ForegroundColor Yellow
     Start-Sleep -Milliseconds 120
 }
 if ($procs) {
@@ -1195,9 +1172,7 @@ if ($procs) {
         } catch {}
     }
 }
-Write-Host "`r  " -NoNewline
-Write-Host "[####################]" -NoNewline -ForegroundColor Green
-Write-Host " 100% Done                                                    " -ForegroundColor DarkGray
+Write-Host "`r  [####################] 100% Done                                                    " -ForegroundColor Green
 Write-Host ""
 if ($jvmIssues.Count -gt 0) {
     Write-Host "  " -NoNewline
