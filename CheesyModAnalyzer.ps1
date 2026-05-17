@@ -206,7 +206,7 @@ $SuspiciousPatterns = @(
     "SpoofRotation","PositionSpoof","GameSpeed","SpeedTimer",
     "autocrystal","auto crystal","cw crystal","dontPlaceCrystal","dontBreakCrystal",
     "canPlaceCrystalServer","healPotSlot","autoCrystalPlaceClock",
-    "AutoAnchor","autoanchor","auto anchor","DoubleAnchor","HasAnchor",
+    "AutoAnchor","autoanchor","auto anchor","DoubleAnchor",
     "anchortweaks","anchor macro","safe anchor","safeanchor","SafeAnchor","AirAnchor",
     "anchorMacro","LWFH Crystal","AutoBreach","NoBounce","EndCrystalItemMixin",
     # Totem / Pot / Armor — specific cheat strings
@@ -306,7 +306,7 @@ $cheatStrings = @(
     "AutoHitCrystal","autohitcrystal","canPlaceCrystalServer","healPotSlot","autoCrystalPlaceClock",
     "EndCrystalItemMixin","LWFH Crystal",
     # Anchor automation
-    "AutoAnchor","autoanchor","auto anchor","DoubleAnchor","HasAnchor",
+    "AutoAnchor","autoanchor","auto anchor","DoubleAnchor",
     "anchortweaks","anchor macro","safe anchor","safeanchor","SafeAnchor","AirAnchor","anchorMacro",
     # Totem / pot cheats
     "AutoTotem","autototem","auto totem","InventoryTotem","inventorytotem","HoverTotem","hover totem","legittotem",
@@ -551,8 +551,14 @@ $whitelistSuppressedPatterns = [System.Collections.Generic.HashSet[string]]::new
     "Attack Delay","Breach Delay","Require Elytra","Activate Key",
     "Click Simulation","On RMB","Place blocks faster",
     "Smooth Rotations","SmoothRotations","arrayOfString",
-    # invsee is a common admin/utility mod
-    "invsee"
+    # Nametag strings are vanilla Minecraft rendering concepts used by many legit mods
+    "NameTags","Nametags",
+    # getPassword is standard Java API (KeyStore, audio devices, etc.)
+    "getPassword",
+    # KeyboardMixin is used by any mod with keybind handling (e.g. push-to-talk)
+    "KeyboardMixin",
+    # Blink is used in UI/animation code — only meaningful alongside other cheat flags
+    "Blink",
 ) | ForEach-Object { [void]$whitelistSuppressedPatterns.Add($_) }
 
 # ── Helper: verify mod identity via metadata inside the JAR ─────────────────
@@ -661,8 +667,11 @@ function Invoke-JarScan([string]$FilePath) {
                     foreach ($p in $SuspiciousPatterns) {
                         if ($njName -match [regex]::Escape($p)) { Add-FlagFiltered $p }
                     }
-                    if ($JapaneseRegex.IsMatch($njName)) { Add-Flag "Japanese obfuscation" }
-                    if ([regex]::IsMatch($njName, "[\u4E00-\u9FFF]")) { Add-Flag "Chinese obfuscation" }
+                    $njIsLangFile = $njName -match "(?i)(^|/)assets/[^/]+/lang/[^/]+\.(json|lang)$"
+                    if (-not $njIsLangFile) {
+                        if ($JapaneseRegex.IsMatch($njName)) { Add-Flag "Japanese obfuscation" }
+                        if ([regex]::IsMatch($njName, "[\u4E00-\u9FFF]")) { Add-Flag "Chinese obfuscation" }
+                    }
 
                     # text file scan
                     if (($njExt -in @(".json",".txt",".toml",".cfg",".properties")) -or ($njName -match "MANIFEST\.MF")) {
@@ -673,13 +682,8 @@ function Invoke-JarScan([string]$FilePath) {
                                 $t  = $r.ReadToEnd(); $r.Close(); $s.Close()
                                 foreach ($p in $SuspiciousPatterns) { if ($t -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
                                 foreach ($p in $cheatStrings)        { if ($t -match [regex]::Escape($p)) { Add-FlagFiltered $p } }
-                                if ($JapaneseRegex.IsMatch($t))                         { Add-Flag "Japanese obfuscation" }
-                                if ([regex]::IsMatch($t, "[\u4E00-\u9FFF]"))            { Add-Flag "Chinese obfuscation" }
-                            } catch {}
-                        }
-                    }
-
-                    # class bytecode scan
+                                if ($JapaneseRegex.IsMatch($t) -and -not $njIsLangFile)             { Add-Flag "Japanese obfuscation" }
+                                if ([regex]::IsMatch($t, "[\u4E00-\u9FFF]") -and -not $njIsLangFile) { Add-Flag "Chinese obfuscation" }
                     if ($njExt -eq ".class" -and $njEntry.Length -lt 512KB) {
                         try {
                             $s    = $njEntry.Open()
@@ -721,8 +725,12 @@ function Invoke-JarScan([string]$FilePath) {
             }
 
             # Japanese/Chinese obfuscation in class names
-            if ($JapaneseRegex.IsMatch($name)) { Add-Flag "Japanese obfuscation" }
-            if ([regex]::IsMatch($name, "[\u4E00-\u9FFF]")) { Add-Flag "Chinese obfuscation" }
+            # Skip legitimate lang/ translation files (e.g. assets/mod/lang/zh_cn.json, ja_jp.json)
+            $isLangFile = $name -match "(?i)(^|/)assets/[^/]+/lang/[^/]+\.(json|lang)$"
+            if (-not $isLangFile) {
+                if ($JapaneseRegex.IsMatch($name)) { Add-Flag "Japanese obfuscation" }
+                if ([regex]::IsMatch($name, "[\u4E00-\u9FFF]")) { Add-Flag "Chinese obfuscation" }
+            }
 
             # ── 6. READ TEXT FILES FOR STRING MATCHES ───────────
             $ext = [System.IO.Path]::GetExtension($name).ToLower()
@@ -740,8 +748,8 @@ function Invoke-JarScan([string]$FilePath) {
                         foreach ($p in $cheatStrings) {
                             if ($text -match [regex]::Escape($p)) { Add-FlagFiltered $p }
                         }
-                        if ($JapaneseRegex.IsMatch($text))                         { Add-Flag "Japanese obfuscation" }
-                        if ([regex]::IsMatch($text, "[\u4E00-\u9FFF]"))            { Add-Flag "Chinese obfuscation" }
+                        if ($JapaneseRegex.IsMatch($text) -and -not $isLangFile)                         { Add-Flag "Japanese obfuscation" }
+                        if ([regex]::IsMatch($text, "[\u4E00-\u9FFF]") -and -not $isLangFile)            { Add-Flag "Chinese obfuscation" }
 
                         # ── 7. SUSPICIOUS URLS IN CONFIG/MANIFEST ───────────
                         $suspiciousUrlPatterns = @(
@@ -1034,7 +1042,41 @@ if ($activeJars.Count -eq 0) {
         }
 
         if ($patterns.Count -gt 0) {
-            $suspicious.Add(@{ File = $jar.Name; Hash = $hash; Patterns = $patterns; DlSource = $src })
+            # ── Post-scan false-positive reduction ───────────────────────────────────
+            # ClientPlayerInteractionManagerMixin is part of Fabric's standard API and
+            # is used by many legitimate mods (crosshair addons, shield status displays,
+            # etc.). Only keep it if at least one *other* hard cheat indicator is present.
+            $hardCheatIndicators = @(
+                "Backdoor","Stealer","TokenGrabber","ReverseShell","C2Server",
+                "KillAura","AimAssist","AutoCrystal","Blink","FakeLag","PacketFly",
+                "AntiAntiCheat","GrimBypass","NCPBypass","AACBypass","WatchdogBypass",
+                "Runtime command execution","Known cheat filename token"
+            )
+            $hasHardIndicator = $patterns | Where-Object {
+                $p = $_
+                $hardCheatIndicators | Where-Object { $p -like "*$_*" }
+            }
+            if (-not $hasHardIndicator) {
+                $patterns = $patterns | Where-Object { $_ -ne "ClientPlayerInteractionManagerMixin" }
+            }
+
+            # License/HWID: suppress when the only non-CJK flag — common in mods that
+            # bundle dependency JARs with their own licensing code (voice chat libs, etc.)
+            $seriousNonLicenseFlags = $patterns | Where-Object {
+                $_ -ne "License/HWID check detected" -and
+                $_ -notmatch "obfuscation"
+            }
+            if (($patterns | Where-Object { $_ -eq "License/HWID check detected" }) -and
+                -not $seriousNonLicenseFlags) {
+                $patterns = $patterns | Where-Object { $_ -ne "License/HWID check detected" }
+            }
+            # ────────────────────────────────────────────────────────────────────────
+
+            if ($patterns.Count -gt 0) {
+                $suspicious.Add(@{ File = $jar.Name; Hash = $hash; Patterns = $patterns; DlSource = $src })
+            } elseif ($verifiedNames -notcontains $jar.Name) {
+                $unknown.Add(@{ File = $jar.Name; Hash = $hash; DlSource = $src })
+            }
         } elseif ($verifiedNames -notcontains $jar.Name) {
             $unknown.Add(@{ File = $jar.Name; Hash = $hash; DlSource = $src })
         }
