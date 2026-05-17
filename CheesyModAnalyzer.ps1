@@ -781,8 +781,8 @@ if ($procs) {
                 $agents = [regex]::Matches($cmdLine, '-javaagent:([^\s"]+)')
                 foreach ($a in $agents) {
                     $agentPath = $a.Groups[1].Value
-                    # Ignore known legit agents
-                    if ($agentPath -notmatch "JetBrains|intellij|idea|eclipse|fabric-installer") {
+                    # Ignore known legit launcher/IDE agents
+                    if ($agentPath -notmatch "JetBrains|intellij|idea|eclipse|fabric-installer|theseus|modrinth|prismlauncher|multimc|atlauncher|curseforge|forge-installer|quilt-installer") {
                         $jvmIssues.Add("Suspicious -javaagent: $agentPath")
                     }
                 }
@@ -1039,9 +1039,12 @@ Write-Host ""
 Write-Host "  Analysis complete! Thanks for using CheesyModAnalyzer " -NoNewline -ForegroundColor White
 Write-Host "o" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  Created by  : cheese cat" -ForegroundColor DarkGray
-Write-Host "  Discord     : cheese_cat0" -ForegroundColor DarkGray
-Write-Host "  GitHub      : cheesecatlol" -ForegroundColor DarkGray
+Write-Host "  Created by  : " -NoNewline -ForegroundColor DarkGray
+Write-Host "cheese cat" -ForegroundColor Yellow
+Write-Host "  Discord     : " -NoNewline -ForegroundColor DarkGray
+Write-Host "cheese_cat0" -ForegroundColor Yellow
+Write-Host "  GitHub      : " -NoNewline -ForegroundColor DarkGray
+Write-Host "github.com/cheesecatlol" -ForegroundColor Yellow
 Write-Host ""
 Write-Host $sep -ForegroundColor DarkYellow
 Write-Host ""
