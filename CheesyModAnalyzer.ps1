@@ -436,8 +436,11 @@ function Write-SectionHeader([string]$Title, [ConsoleColor]$Color = "Yellow") {
     "Smoke"          = @("SmokeObf","smoke.obf")
 }
 
+# ================================================================
+#  FIX: Corrected parenthesis grouping in $ObfuscatorRegex
+# ================================================================
  $ObfuscatorRegex = [regex]::new(
-    '(?:' + (($cheatObfuscators.Values | ForEach-Object { $_ }) | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')',
+    ('(?:' + (($cheatObfuscators.Values | ForEach-Object { $_ } | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')'),
     [System.Text.RegularExpressions.RegexOptions]::Compiled
 )
 
