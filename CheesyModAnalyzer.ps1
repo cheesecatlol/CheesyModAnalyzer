@@ -523,8 +523,9 @@ function Invoke-MegabaseLookup([string]$Hash) {
 }
 
 function Get-ModWhitelisted([string]$FilePath) {
+    $z = $null
     try {
-        $z   = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
+        $z = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
         $fmj = $z.Entries | Where-Object { $_.FullName -eq "fabric.mod.json" } | Select-Object -First 1
         if ($fmj) {
             $sr  = [System.IO.StreamReader]::new($fmj.Open())
@@ -534,7 +535,7 @@ function Get-ModWhitelisted([string]$FilePath) {
             if ($raw -match '"name"\s*:\s*"([^"]+)"') { $fieldsToCheck += $Matches[1].ToLower() }
             foreach ($field in $fieldsToCheck) {
                 foreach ($token in $whitelistedFileTokens) {
-                    if ($field -like "*$($token.ToLower())*") { $z.Dispose(); return $true }
+                    if ($field -like "*$($token.ToLower())*") { return $true }
                 }
             }
         }
@@ -545,12 +546,14 @@ function Get-ModWhitelisted([string]$FilePath) {
             if ($raw -match 'modId\s*=\s*"([^"]+)"') {
                 $modId = $Matches[1].ToLower()
                 foreach ($token in $whitelistedFileTokens) {
-                    if ($modId -like "*$($token.ToLower())*") { $z.Dispose(); return $true }
+                    if ($modId -like "*$($token.ToLower())*") { return $true }
                 }
             }
         }
-        $z.Dispose()
     } catch {}
+    finally {
+        if ($null -ne $z) { $z.Dispose() }
+    }
     return $false
 }
 
