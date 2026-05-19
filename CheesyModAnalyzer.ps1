@@ -579,8 +579,8 @@ function Invoke-JarScan([string]$FilePath) {
 
     if (Get-ModWhitelisted -FilePath $FilePath) { return @() }
 
-    $buffer = $null
-    $hasNonAscii = $false
+    $script:buffer = $null
+    $script:hasNonAscii = $false
 
     function Add-Flag([string]$flag) { [void]$found.Add($flag.Trim()) }
     function Add-Filtered([string]$flag) {
@@ -591,17 +591,17 @@ function Invoke-JarScan([string]$FilePath) {
     function Read-EntryBytes([System.IO.Compression.ZipArchiveEntry]$entry) {
         $stream = $entry.Open()
         $size = [int]$entry.Length
-        if ($null -eq $buffer -or $buffer.Length -lt $size) {
-            $buffer = New-Object byte[] ($size + 1024)
+        if ($null -eq $script:buffer -or $script:buffer.Length -lt $size) {
+            $script:buffer = New-Object byte[] ($size + 1024)
         }
         $read = 0
         $nonAscii = $false
         while ($read -lt $size) {
-            $r = $stream.Read($buffer, $read, $size - $read)
+            $r = $stream.Read($script:buffer, $read, $size - $read)
             if ($r -eq 0) { break }
             if (-not $nonAscii) {
                 for ($i = $read; $i -lt $read + $r; $i++) {
-                    if ($buffer[$i] -gt 127) { $nonAscii = $true; break }
+                    if ($script:buffer[$i] -gt 127) { $nonAscii = $true; break }
                 }
             }
             $read += $r
@@ -615,8 +615,8 @@ function Invoke-JarScan([string]$FilePath) {
         $matches = $UnifiedPatternRegex.Matches($ascii)
         foreach ($m in $matches) { Add-Filtered $m.Value }
 
-        if ($hasNonAscii) {
-            $utf8 = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $byteLen)
+        if ($script:hasNonAscii) {
+            $utf8 = [System.Text.Encoding]::UTF8.GetString($script:buffer, 0, $byteLen)
             $utf8Matches = $UnifiedPatternRegex.Matches($utf8)
             foreach ($m in $utf8Matches) { Add-Filtered $m.Value }
             $fwMatches = $FullwidthRegex.Matches($utf8)
@@ -741,7 +741,7 @@ function Invoke-JarScan([string]$FilePath) {
                     if (($TextExtensions.Contains($njExt) -or $ManifestRegex.IsMatch($njName)) -and $njEntry.Length -lt 2MB -and -not $isDictFile) {
                         try {
                             $len = Read-EntryBytes -entry $njEntry
-                            $ascii = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $len)
+                            $ascii = [System.Text.Encoding]::ASCII.GetString($script:buffer, 0, $len)
                             if ($njExt -eq ".txt" -and -not $isDictFile) {
                                 $lines = $ascii -split "`n" | Where-Object { $_.Trim() -ne "" } | Select-Object -First 200
                                 if ($lines.Count -ge 50) {
@@ -755,7 +755,7 @@ function Invoke-JarScan([string]$FilePath) {
                     if ($njExt -eq ".class" -and $njEntry.Length -lt 512KB -and $njEntry.Length -gt 10) {
                         try {
                             $len = Read-EntryBytes -entry $njEntry
-                            $ascii = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $len)
+                            $ascii = [System.Text.Encoding]::ASCII.GetString($script:buffer, 0, $len)
                             Process-Content -ascii $ascii -byteLen $len -isLangFile $false -isClassFile $true
                         } catch {}
                     }
@@ -778,7 +778,7 @@ function Invoke-JarScan([string]$FilePath) {
             if ($isDictFile) { continue }
             try {
                 $len = Read-EntryBytes -entry $entry
-                $ascii = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $len)
+                $ascii = [System.Text.Encoding]::ASCII.GetString($script:buffer, 0, $len)
                 $ext = [System.IO.Path]::GetExtension($name).ToLower()
                 if ($ext -eq ".txt") {
                     $lines = $ascii -split "`n" | Where-Object { $_.Trim() -ne "" } | Select-Object -First 200
@@ -794,7 +794,7 @@ function Invoke-JarScan([string]$FilePath) {
         if ($null -ne $manifestEntry) {
             try {
                 $len = Read-EntryBytes -entry $manifestEntry
-                $ascii = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $len)
+                $ascii = [System.Text.Encoding]::ASCII.GetString($script:buffer, 0, $len)
                 Process-Content -ascii $ascii -byteLen $len -isLangFile $false -isClassFile $false
             } catch {}
         }
@@ -810,7 +810,7 @@ function Invoke-JarScan([string]$FilePath) {
             }
             try {
                 $len = Read-EntryBytes -entry $entry
-                $ascii = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $len)
+                $ascii = [System.Text.Encoding]::ASCII.GetString($script:buffer, 0, $len)
                 Process-Content -ascii $ascii -byteLen $len -isLangFile $isLangFile -isClassFile $true
             } catch {}
         }
