@@ -659,6 +659,7 @@ function Invoke-JarScan([string]$FilePath) {
         }
     }
 
+    $zip = $null
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
 
@@ -818,10 +819,11 @@ function Invoke-JarScan([string]$FilePath) {
             } catch {}
         }
 
-        $zip.Dispose()
     } catch {
         Write-Host ""
         Write-Host "    [WARN] Could not open JAR: $($_.Exception.Message)" -ForegroundColor DarkYellow
+    } finally {
+        if ($null -ne $zip) { $zip.Dispose() }
     }
 
     Resolve-FullwidthMatches -found $found
