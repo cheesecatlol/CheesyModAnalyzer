@@ -50,7 +50,7 @@ function Write-Banner {
 
     Write-Host ""
     Write-Host "  " -NoNewline
-    Write-Host "  o O o O o  [ Made by cheese cattttttttttttttt ]  o O o O o  " -ForegroundColor DarkYellow
+    Write-Host "  o O o O o  [ Made by cheese cat ]  o O o O o  " -ForegroundColor DarkYellow
     Write-Host ""
     Write-Host ("  " + "~" * 62) -ForegroundColor DarkYellow
     Write-Host ""
@@ -846,6 +846,7 @@ function Invoke-JarScan([string]$FilePath) {
     } catch {
         Write-Host ""
         Write-Host "    [WARN] Could not open JAR: $($_.Exception.Message)" -ForegroundColor DarkYellow
+        Write-Host "    [DEBUG] Line: $($_.InvocationInfo.ScriptLineNumber) | $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkCyan
     } finally {
         if ($null -ne $zip) { $zip.Dispose() }
     }
