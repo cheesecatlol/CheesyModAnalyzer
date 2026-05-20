@@ -338,8 +338,8 @@ function Write-SectionHeader([string]$Title, [ConsoleColor]$Color = "Yellow") {
  $JapaneseRegex = [regex]::new("[\u3040-\u309F\u30A0-\u30FF]", [System.Text.RegularExpressions.RegexOptions]::Compiled)
  $ChineseRegex  = [regex]::new("[\u4E00-\u9FFF]", [System.Text.RegularExpressions.RegexOptions]::Compiled)
 
- $ScanExtensions = [System.Collections.Generic.HashSet[string]]::new(@(".class",".json",".txt",".toml",".cfg",".properties"))
- $TextExtensions = [System.Collections.Generic.HashSet[string]]::new(@(".json",".txt",".toml",".cfg",".properties"))
+ $ScanExtensions = [System.Collections.Generic.HashSet[string]]::new([string[]]@(".class",".json",".txt",".toml",".cfg",".properties"))
+ $TextExtensions = [System.Collections.Generic.HashSet[string]]::new([string[]]@(".json",".txt",".toml",".cfg",".properties"))
 
  $fwCheatPool = @($cheatStrings | Where-Object { $_ -cmatch "[\uFF21-\uFF3A\uFF41-\uFF5A\uFF10-\uFF19]" })
 
