@@ -50,7 +50,7 @@ function Write-Banner {
 
     Write-Host ""
     Write-Host "  " -NoNewline
-    Write-Host "  o O o O o  [ Made by cheese cat ]  o O o O o  " -ForegroundColor DarkYellow
+    Write-Host "  o O o O o  [ Made by cheese cattt ]  o O o O o  " -ForegroundColor DarkYellow
     Write-Host ""
     Write-Host ("  " + "~" * 62) -ForegroundColor DarkYellow
     Write-Host ""
