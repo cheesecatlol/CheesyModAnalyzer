@@ -1674,19 +1674,28 @@ foreach ($jar in $activeJars) {
     $jobs.Add(@{ PS = $ps; Handle = $ps.BeginInvoke(); Name = $jar.Name })
 }
 
-# Progress loop — poll until all jobs finish
-$total = $jobs.Count; $done = 0
-while ($done -lt $total) {
-    $done = ($jobs | Where-Object { $_.Handle.IsCompleted }).Count
-    $pct2 = [int](($done / $total) * 100)
-    $bar2 = "#" * [int]($pct2 / 5); $emp2 = "-" * (20 - $bar2.Length)
-    Write-Host "`r  [$bar2$emp2] $pct2%  ($done/$total complete)                              " -NoNewline -ForegroundColor Yellow
-    if ($done -lt $total) { Start-Sleep -Milliseconds 150 }
+# Progress loop — poll completed jobs and show the most recently
+# finished filename, matching the original per-file ticker style.
+$total = $jobs.Count
+$completedNames = [System.Collections.Generic.HashSet[string]]::new()
+$lastShown = ""
+while ($completedNames.Count -lt $total) {
+    foreach ($job in $jobs) {
+        if ($job.Handle.IsCompleted -and -not $completedNames.Contains($job.Name)) {
+            [void]$completedNames.Add($job.Name)
+            $lastShown = $job.Name
+        }
+    }
+    $done  = $completedNames.Count
+    $pct2  = [int](($done / $total) * 100)
+    $bar2  = "#" * [int]($pct2 / 5); $emp2 = "-" * (20 - $bar2.Length)
+    Write-Host "`r  [$bar2$emp2] $pct2%  $lastShown                              " -NoNewline -ForegroundColor Yellow
+    if ($completedNames.Count -lt $total) { Start-Sleep -Milliseconds 100 }
 }
 Write-Host "`r  [####################] 100% Done                                                    " -ForegroundColor Green
 Write-Host ""
 
-# Collect results and classify
+# Collect and classify all results
 $hardCheatIndicators = [string[]]@(
     "Backdoor","Stealer","TokenGrabber","ReverseShell","C2Server",
     "KillAura","AimAssist","AutoCrystal","Blink","FakeLag","PacketFly",
@@ -1734,6 +1743,7 @@ foreach ($job in $jobs) {
 }
 $pool.Close(); $pool.Dispose()
 
+# ── Pass 2 summary (original style) ─────────────────────────────
 foreach ($m in $suspicious) {
     Write-Host "  " -NoNewline
     Write-Host " SUSPICIOUS " -NoNewline -ForegroundColor White -BackgroundColor DarkRed
@@ -1744,6 +1754,17 @@ foreach ($m in $unknown) {
     Write-Host " UNKNOWN " -NoNewline -ForegroundColor Black -BackgroundColor DarkYellow
     Write-Host " $($m.File)" -ForegroundColor DarkGray
 }
+Write-Host ""
+
+# ================================================================
+#  PASS 3 — BYPASS / INJECTION RESULTS
+# ================================================================
+
+Write-Host "  " -NoNewline
+Write-Host "Pass 3" -NoNewline -ForegroundColor Yellow
+Write-Host " — Bypass/injection scan complete." -ForegroundColor DarkGray
+Write-Host ""
+
 if ($injected.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " $($injected.Count) INJECTED/BYPASS MOD(S) DETECTED " -ForegroundColor White -BackgroundColor DarkRed
@@ -1755,6 +1776,17 @@ if ($injected.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " No injection or bypass markers found " -ForegroundColor Black -BackgroundColor DarkGreen
 }
+Write-Host ""
+
+# ================================================================
+#  PASS 4 — OBFUSCATION RESULTS
+# ================================================================
+
+Write-Host "  " -NoNewline
+Write-Host "Pass 4" -NoNewline -ForegroundColor Yellow
+Write-Host " — Obfuscation analysis complete." -ForegroundColor DarkGray
+Write-Host ""
+
 if ($obfuscated.Count -gt 0) {
     Write-Host "  " -NoNewline
     Write-Host " $($obfuscated.Count) OBFUSCATED MOD(S) " -ForegroundColor Black -BackgroundColor DarkYellow
@@ -1769,11 +1801,11 @@ if ($obfuscated.Count -gt 0) {
 Write-Host ""
 
 # ================================================================
-#  PASS 3 — JVM AGENT SCAN
+#  PASS 5 — JVM AGENT SCAN
 # ================================================================
 
 Write-Host "  " -NoNewline
-Write-Host "Pass 3" -NoNewline -ForegroundColor Yellow
+Write-Host "Pass 5" -NoNewline -ForegroundColor Yellow
 Write-Host " — Scanning JVM for agents and injections..." -ForegroundColor DarkGray
 Write-Host ""
 
