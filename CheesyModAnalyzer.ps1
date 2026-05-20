@@ -50,7 +50,7 @@ function Write-Banner {
 
     Write-Host ""
     Write-Host "  " -NoNewline
-    Write-Host "  o O o O o  [ Made by cheese cat [debug] ]  o O o O o  " -ForegroundColor DarkYellow
+    Write-Host "  o O o O o  [ Made by cheese cat ]  o O o O o  " -ForegroundColor DarkYellow
     Write-Host ""
     Write-Host ("  " + "~" * 62) -ForegroundColor DarkYellow
     Write-Host ""
@@ -580,6 +580,31 @@ function Resolve-FullwidthMatches([System.Collections.Generic.HashSet[string]]$f
 function Invoke-JarScan([string]$FilePath) {
     $found = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
+    # Lokale kopieën van script-level variabelen (scope fix)
+    $TextExtensions          = $script:TextExtensions
+    $ManifestRegex           = $script:ManifestRegex
+    $NestedJarRegex          = $script:NestedJarRegex
+    $LangFileRegex           = $script:LangFileRegex
+    $DictFileRegex           = $script:DictFileRegex
+    $WordLineRegex           = $script:WordLineRegex
+    $UnifiedPatternRegex     = $script:UnifiedPatternRegex
+    $FullwidthRegex          = $script:FullwidthRegex
+    $JapaneseRegex           = $script:JapaneseRegex
+    $ChineseRegex            = $script:ChineseRegex
+    $ObfuscatorRegex         = $script:ObfuscatorRegex
+    $RuntimeExecRegex        = $script:RuntimeExecRegex
+    $NetworkCallRegex        = $script:NetworkCallRegex
+    $MalwareStrRegex         = $script:MalwareStrRegex
+    $ReflectionRegex         = $script:ReflectionRegex
+    $LegitDomainRegex        = $script:LegitDomainRegex
+    $SuspiciousUrlRegex      = $script:SuspiciousUrlRegex
+    $LicenseHwidRegex        = $script:LicenseHwidRegex
+    $whitelistSuppressedPatterns = $script:whitelistSuppressedPatterns
+    $cheatObfuscators        = $script:cheatObfuscators
+    $suspiciousRoots         = $script:suspiciousRoots
+    $fwCheatPool             = $script:fwCheatPool
+    $whitelistedFileTokens   = $script:whitelistedFileTokens
+
     $script:buffer = $null
     $script:hasNonAscii = $false
 
@@ -700,7 +725,7 @@ function Invoke-JarScan([string]$FilePath) {
                 $classPaths.Add($name)
                 if ($entry.Length -lt 512KB -and $entry.Length -gt 10) { $classEntries.Add($entry) }
             }
-            elseif ($script:TextExtensions.Contains($ext) -and $entry.Length -lt 2MB -and $entry.Length -gt 10) {
+            elseif ($TextExtensions.Contains($ext) -and $entry.Length -lt 2MB -and $entry.Length -gt 10) {
                 $textEntries.Add($entry)
             }
             elseif ($ManifestRegex.IsMatch($name) -and $entry.Length -lt 100KB) {
@@ -766,7 +791,7 @@ function Invoke-JarScan([string]$FilePath) {
                         if ($JapaneseRegex.IsMatch($njName)) { Add-Flag "Japanese obfuscation" }
                         if ($ChineseRegex.IsMatch($njName))  { Add-Flag "Chinese obfuscation" }
                     }
-                    if (($script:TextExtensions.Contains($njExt) -or $ManifestRegex.IsMatch($njName)) -and $njEntry.Length -lt 2MB -and -not $isDictFile) {
+                    if (($TextExtensions.Contains($njExt) -or $ManifestRegex.IsMatch($njName)) -and $njEntry.Length -lt 2MB -and -not $isDictFile) {
                         try {
                             $len = Read-EntryBytes -entry $njEntry
                             $ascii = [System.Text.Encoding]::ASCII.GetString($script:buffer, 0, $len)
