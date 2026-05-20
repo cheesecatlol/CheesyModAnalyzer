@@ -700,7 +700,7 @@ function Invoke-JarScan([string]$FilePath) {
                 $classPaths.Add($name)
                 if ($entry.Length -lt 512KB -and $entry.Length -gt 10) { $classEntries.Add($entry) }
             }
-            elseif ($TextExtensions.Contains($ext) -and $entry.Length -lt 2MB -and $entry.Length -gt 10) {
+            elseif ($script:TextExtensions.Contains($ext) -and $entry.Length -lt 2MB -and $entry.Length -gt 10) {
                 $textEntries.Add($entry)
             }
             elseif ($ManifestRegex.IsMatch($name) -and $entry.Length -lt 100KB) {
@@ -766,7 +766,7 @@ function Invoke-JarScan([string]$FilePath) {
                         if ($JapaneseRegex.IsMatch($njName)) { Add-Flag "Japanese obfuscation" }
                         if ($ChineseRegex.IsMatch($njName))  { Add-Flag "Chinese obfuscation" }
                     }
-                    if (($TextExtensions.Contains($njExt) -or $ManifestRegex.IsMatch($njName)) -and $njEntry.Length -lt 2MB -and -not $isDictFile) {
+                    if (($script:TextExtensions.Contains($njExt) -or $ManifestRegex.IsMatch($njName)) -and $njEntry.Length -lt 2MB -and -not $isDictFile) {
                         try {
                             $len = Read-EntryBytes -entry $njEntry
                             $ascii = [System.Text.Encoding]::ASCII.GetString($script:buffer, 0, $len)
@@ -846,7 +846,6 @@ function Invoke-JarScan([string]$FilePath) {
     } catch {
         Write-Host ""
         Write-Host "    [WARN] Could not open JAR: $($_.Exception.Message)" -ForegroundColor DarkYellow
-        Write-Host "    [DEBUG] Line: $($_.InvocationInfo.ScriptLineNumber) | $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkCyan
     } finally {
         if ($null -ne $zip) { $zip.Dispose() }
     }
