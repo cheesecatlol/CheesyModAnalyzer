@@ -105,6 +105,12 @@ function Write-SectionHeader([string]$Title, [ConsoleColor]$Color = "Yellow") {
     "attachAgent","VirtualMachine.attach",
     "aHR0cDovL2FwaS5ub3ZhY2xpZW50LmxvbC93ZWJob29rLnR4dA==",
     "chainlibs","phantom-refmap","xyz.greaj","jnativehook",
+    "org.chainlibs.module.impl.modules.Crystal.Y","org.chainlibs.module.impl.modules.Crystal.bF",
+    "org.chainlibs.module.impl.modules.Crystal.bM","org.chainlibs.module.impl.modules.Crystal.bY",
+    "org.chainlibs.module.impl.modules.Crystal.bq","org.chainlibs.module.impl.modules.Crystal.cv",
+    "org.chainlibs.module.impl.modules.Crystal.o","org.chainlibs.module.impl.modules.Blatant.I",
+    "org.chainlibs.module.impl.modules.Blatant.bR","org.chainlibs.module.impl.modules.Blatant.bx",
+    "org.chainlibs.module.impl.modules.Blatant.cj","org.chainlibs.module.impl.modules.Blatant.dk",
     "KeyboardMixin","ClientPlayerInteractionManagerMixin","LicenseCheckMixin",
     "Allatori","Stringer","Branchlock","Caesium",
     "me/zero/client","me/rigamortis","net/ccbluex","io/github/nevalackin",
@@ -262,7 +268,23 @@ function Write-SectionHeader([string]$Title, [ConsoleColor]$Color = "Yellow") {
     "No Count Glitch","NoBounce","No Bounce","Anchor Macro",
     "Auto Inventory Totem","Strict One-Tick","Mace Priority","Min Totems","Min Pearls",
     "Totem First","Loot Yeeter","holdCrystal","stopOnKill","placeInterval","breakInterval",
-    "activateOnRightClick",
+    "activateOnRightClick","HasAnchor","Blatant",
+    "Auto Switch Back","Check Line of Sight","Only When Falling","Require Crit",
+    "Show Status Display","Stop On Crystal","Check Shield","On Pop","Predict Damage",
+    "On Ground","Check Players","Predict Crystals","Check Aim","Check Items",
+    "Activates Above","Force Totem","Stay Open For","Only On Pop",
+    "Vertical Speed","Hover Totem","Swap Speed","Drop Interval","Random Pattern",
+    "Horizontal Aim Speed","Vertical Aim Speed","Include Head",
+    "Web Delay","Holding Web","Not When Affects Player","Hit Delay",
+    "Require Hold Axe","Auto Pot","Macro Key",
+    "Ｂｌａｔａｎｔ","Ｆｏｒｃｅ Ｔｏｔｅｍ","Ｓｔａｙ Ｏｐｅｎ Ｆｏｒ","Ｏｎｌｙ Ｏｎ Ｐｏｐ",
+    "Ｖｅｒｔｉｃａｌ Ｓｐｅｅｄ","Ｓｗａｐ Ｓｐｅｅｄ","Ｄｒｏｐ Ｉｎｔｅｒｖａｌ","Ｒａｎｄｏｍ Ｐａｔｔｅｒｎ",
+    "Ｈｏｒｉｚｏｎｔａｌ Ａｉｍ Ｓｐｅｅｄ","Ｖｅｒｔｉｃａｌ Ａｉｍ Ｓｐｅｅｄ","Ｉｎｃｌｕｄｅ Ｈｅａｄ",
+    "Ｗｅｂ Ｄｅｌａｙ","Ｈｏｌｄｉｎｇ Ｗｅｂ","Ｈｉｔ Ｄｅｌａｙ","Ｒｅｑｕｉｒｅ Ｈｏｌｄ Ａｘｅ",
+    "Ａｕｔｏ Ｓｗｉｔｃｈ Ｂａｃｋ","Ｃｈｅｃｋ Ｌｉｎｅ ｏｆ Ｓｉｇｈｔ","Ｏｎｌｙ Ｗｈｅｎ Ｆａｌｌｉｎｇ",
+    "Ｒｅｑｕｉｒｅ Ｃｒｉｔ","Ｓｔｏｐ Ｏｎ Ｃｒｙｓｔａｌ","Ｃｈｅｃｋ Ｓｈｉｅｌｄ","Ｏｎ Ｐｏｐ",
+    "Ｐｒｅｄｉｃｔ Ｄａｍａｇｅ","Ｐｒｅｄｉｃｔ Ｃｒｙｓｔａｌｓ","Ｃｈｅｃｋ Ａｉｍ","Ｃｈｅｃｋ Ｉｔｅｍｓ",
+    "Ａｃｔｉｖａｔｅｓ Ａｂｏｖｅ","Ｈｏｖｅｒ Ｔｏｔｅｍ","Ｓｗｉｔｃｈ Ｂａｃｋ","Ｍａｃｒｏ Ｋｅｙ",
     "KillAura","ClickAura","MultiAura","ForceField","LegitAura","SilentAim","AimLock",
     "CrystalAura","AnchorAura","BedAura","BedBomb","BedPlace","BowAimbot",
     "CritBypass","AlwaysCrit",
@@ -338,8 +360,8 @@ function Write-SectionHeader([string]$Title, [ConsoleColor]$Color = "Yellow") {
  $JapaneseRegex = [regex]::new("[\u3040-\u309F\u30A0-\u30FF]", [System.Text.RegularExpressions.RegexOptions]::Compiled)
  $ChineseRegex  = [regex]::new("[\u4E00-\u9FFF]", [System.Text.RegularExpressions.RegexOptions]::Compiled)
 
- $ScanExtensions = [System.Collections.Generic.HashSet[string]]::new([string[]]@(".class",".json",".txt",".toml",".cfg",".properties"))
- $TextExtensions = [System.Collections.Generic.HashSet[string]]::new([string[]]@(".json",".txt",".toml",".cfg",".properties"))
+ $ScanExtensions = [System.Collections.Generic.HashSet[string]]::new(@(".class",".json",".txt",".toml",".cfg",".properties"))
+ $TextExtensions = [System.Collections.Generic.HashSet[string]]::new(@(".json",".txt",".toml",".cfg",".properties"))
 
  $fwCheatPool = @($cheatStrings | Where-Object { $_ -cmatch "[\uFF21-\uFF3A\uFF41-\uFF5A\uFF10-\uFF19]" })
 
@@ -1095,11 +1117,12 @@ function Invoke-ObfuscationScan([string]$FilePath) {
             $examples = ($fwStringMatches | Select-Object -First 3 | ForEach-Object { $_.Value }) -join ", "
             $flags.Add("Fullwidth strings in class content — $($fwStringMatches.Count) occurrences (e.g. $examples)")
         }
-        $obfMatch = $ObfuscatorRegex.Match($sampleStr)
-        if ($obfMatch.Success) {
-            foreach ($obfName in $cheatObfuscators.Keys) {
-                foreach ($pat in $cheatObfuscators[$obfName]) {
-                    if ($sampleStr.Contains($pat)) { $flags.Add("Known cheat obfuscator detected — $obfName (matched: $pat)"); break }
+        # Direct string scan for known obfuscators (no regex gate — catches edge cases the regex misses)
+        foreach ($obfName in $cheatObfuscators.Keys) {
+            foreach ($pat in $cheatObfuscators[$obfName]) {
+                if ($sampleStr.Contains($pat)) {
+                    $flags.Add("Known cheat obfuscator detected — $obfName (matched: $pat)")
+                    break
                 }
             }
         }
