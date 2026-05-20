@@ -580,8 +580,6 @@ function Resolve-FullwidthMatches([System.Collections.Generic.HashSet[string]]$f
 function Invoke-JarScan([string]$FilePath) {
     $found = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
-    if (Get-ModWhitelisted -FilePath $FilePath) { return @() }
-
     $script:buffer = $null
     $script:hasNonAscii = $false
 
@@ -662,6 +660,32 @@ function Invoke-JarScan([string]$FilePath) {
     $zip = $null
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
+
+        # Whitelist check — zelfde $zip instantie hergebruiken (voorkomt dubbel openen)
+        $fmjW = $zip.Entries | Where-Object { $_.FullName -eq "fabric.mod.json" } | Select-Object -First 1
+        if ($fmjW) {
+            $srW = [System.IO.StreamReader]::new($fmjW.Open())
+            $rawW = $srW.ReadToEnd(); $srW.Close()
+            $fieldsW = @()
+            if ($rawW -match '"id"\s*:\s*"([^"]+)"')   { $fieldsW += $Matches[1].ToLower() }
+            if ($rawW -match '"name"\s*:\s*"([^"]+)"') { $fieldsW += $Matches[1].ToLower() }
+            foreach ($field in $fieldsW) {
+                foreach ($token in $whitelistedFileTokens) {
+                    if ($field -like "*$($token.ToLower())*") { return @() }
+                }
+            }
+        }
+        $tomlW = $zip.Entries | Where-Object { $_.FullName -eq "META-INF/mods.toml" } | Select-Object -First 1
+        if ($tomlW) {
+            $srW = [System.IO.StreamReader]::new($tomlW.Open())
+            $rawW = $srW.ReadToEnd(); $srW.Close()
+            if ($rawW -match 'modId\s*=\s*"([^"]+)"') {
+                $modIdW = $Matches[1].ToLower()
+                foreach ($token in $whitelistedFileTokens) {
+                    if ($modIdW -like "*$($token.ToLower())*") { return @() }
+                }
+            }
+        }
 
         $classPaths = [System.Collections.Generic.List[string]]::new()
         $textEntries = [System.Collections.Generic.List[object]]::new()
