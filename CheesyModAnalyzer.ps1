@@ -25,7 +25,7 @@ function Write-Banner {
     $L10 = "  ██╔══██║██║╚██╗██║██╔══██║██║     ╚██╔╝   ███╔╝  ██╔══╝  ██╔══██╗ "
     $L11 = "  ██║  ██║██║ ╚████║██║  ██║███████╗ ██║   ███████╗███████╗██║  ██║ "
     $L12 = "  ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝ ╚═╝   ╚══════╝╚══════╝╚═╝  ╚═╝ "
-Write-Host "  labubu "
+
     $cheese = @(
         "                        .::::. ",
         "                      .:  o   :.",
@@ -1685,7 +1685,7 @@ Write-Host "  Analysis complete! Thanks for using CheesyModAnalyzer " -NoNewline
 Write-Host "o" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Created by  : " -NoNewline -ForegroundColor DarkGray
-Write-Host "cheese cat" -ForegroundColor Yellow
+Write-Host "cheese cat eeeeeee" -ForegroundColor Yellow
 Write-Host "  Discord     : " -NoNewline -ForegroundColor DarkGray
 Write-Host "cheese_cat0" -ForegroundColor Yellow
 Write-Host "  GitHub      : " -NoNewline -ForegroundColor DarkGray
