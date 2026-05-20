@@ -50,7 +50,7 @@ function Write-Banner {
 
     Write-Host ""
     Write-Host "  " -NoNewline
-    Write-Host "  o O o O o  [ Made by cheese catttt(debug mode) ]  o O o O o  " -ForegroundColor DarkYellow
+    Write-Host "  o O o O o  [ Made by cheese catttttttttttt ]  o O o O o  " -ForegroundColor DarkYellow
     Write-Host ""
     Write-Host ("  " + "~" * 62) -ForegroundColor DarkYellow
     Write-Host ""
@@ -1289,7 +1289,11 @@ foreach ($jar in $activeJars) {
     $hash     = $hashMap[$jar.Name]
     $src      = $srcMap[$jar.Name]
 
-    $isJarWhitelisted = Get-ModWhitelisted -FilePath $jar.FullName
+    $isJarWhitelisted = $false
+    $jarNameLowerW = [System.IO.Path]::GetFileNameWithoutExtension($jar.Name).ToLower()
+    foreach ($token in $whitelistedFileTokens) {
+        if ($jarNameLowerW -like "*$($token.ToLower())*") { $isJarWhitelisted = $true; break }
+    }
     if (-not $isJarWhitelisted) {
         $fileNameLower = $jar.Name.ToLower()
         foreach ($token in $knownCheatFileTokens) {
