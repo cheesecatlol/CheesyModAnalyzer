@@ -1322,7 +1322,7 @@ Write-Host ""
 
 Write-Host "  " -NoNewline
 Write-Host "Pass 2" -NoNewline -ForegroundColor Yellow
-Write-Host " — Deep-scanning $($activeJars.Count) mod(s) in parallel (passes 2+3+4)..." -ForegroundColor DarkGray
+Write-Host " — Deep-scanning all $($activeJars.Count) mod(s)..." -ForegroundColor DarkGray
 Write-Host ""
 
 # Capture all script-scope data that runspaces need — runspaces
@@ -1674,28 +1674,13 @@ foreach ($jar in $activeJars) {
     $jobs.Add(@{ PS = $ps; Handle = $ps.BeginInvoke(); Name = $jar.Name })
 }
 
-# Progress loop — poll completed jobs and show the most recently
-# finished filename, matching the original per-file ticker style.
-$total = $jobs.Count
-$completedNames = [System.Collections.Generic.HashSet[string]]::new()
+# Progress + collect loop — EndInvoke is called as each job completes
+# so runspaces are freed immediately and can't deadlock the pool.
+$total    = $jobs.Count
+$pending  = [System.Collections.Generic.List[hashtable]]::new($jobs)
 $lastShown = ""
-while ($completedNames.Count -lt $total) {
-    foreach ($job in $jobs) {
-        if ($job.Handle.IsCompleted -and -not $completedNames.Contains($job.Name)) {
-            [void]$completedNames.Add($job.Name)
-            $lastShown = $job.Name
-        }
-    }
-    $done  = $completedNames.Count
-    $pct2  = [int](($done / $total) * 100)
-    $bar2  = "#" * [int]($pct2 / 5); $emp2 = "-" * (20 - $bar2.Length)
-    Write-Host "`r  [$bar2$emp2] $pct2%  $lastShown                              " -NoNewline -ForegroundColor Yellow
-    if ($completedNames.Count -lt $total) { Start-Sleep -Milliseconds 100 }
-}
-Write-Host "`r  [####################] 100% Done                                                    " -ForegroundColor Green
-Write-Host ""
+$doneCount = 0
 
-# Collect and classify all results
 $hardCheatIndicators = [string[]]@(
     "Backdoor","Stealer","TokenGrabber","ReverseShell","C2Server",
     "KillAura","AimAssist","AutoCrystal","Blink","FakeLag","PacketFly",
@@ -1704,43 +1689,61 @@ $hardCheatIndicators = [string[]]@(
 )
 $verifiedNamesSet = [System.Collections.Generic.HashSet[string]]::new($verifiedNames, [System.StringComparer]::OrdinalIgnoreCase)
 
-foreach ($job in $jobs) {
-    $result = $null
-    try { $result = $job.PS.EndInvoke($job.Handle) | Select-Object -Last 1 } catch {}
-    $job.PS.Dispose()
-    if ($null -eq $result) { continue }
+while ($pending.Count -gt 0) {
+    $finished = $pending | Where-Object { $_.Handle.IsCompleted }
+    foreach ($job in $finished) {
+        [void]$pending.Remove($job)
+        $doneCount++
+        $lastShown = $job.Name
 
-    $hash = $hashMap[$result.File]; $src = $srcMap[$result.File]
+        $result = $null
+        try { $result = $job.PS.EndInvoke($job.Handle) | Select-Object -Last 1 } catch {}
+        $job.PS.Dispose()
 
-    # Deep scan classification
-    $patterns = [System.Collections.Generic.List[string]]$result.DeepFlags
-    if ($patterns.Count -gt 0) {
-        $hasHard = $false
-        foreach ($p in $patterns) { foreach ($hc in $hardCheatIndicators) { if ($p -like "*$hc*") { $hasHard = $true; break } }; if ($hasHard) { break } }
-        if (-not $hasHard) { $patterns = [System.Collections.Generic.List[string]]@($patterns | Where-Object { $_ -ne "ClientPlayerInteractionManagerMixin" }) }
-        $seriousNonLic = @($patterns | Where-Object { $_ -ne "License/HWID check detected" -and $_ -notmatch "obfuscation" })
-        if (($patterns | Where-Object { $_ -eq "License/HWID check detected" }).Count -gt 0 -and $seriousNonLic.Count -eq 0) {
-            $patterns = [System.Collections.Generic.List[string]]@($patterns | Where-Object { $_ -ne "License/HWID check detected" })
+        if ($null -ne $result) {
+            $hash = $hashMap[$result.File]; $src = $srcMap[$result.File]
+
+            # Deep scan classification
+            $patterns = [System.Collections.Generic.List[string]]$result.DeepFlags
+            if ($patterns.Count -gt 0) {
+                $hasHard = $false
+                foreach ($p in $patterns) { foreach ($hc in $hardCheatIndicators) { if ($p -like "*$hc*") { $hasHard = $true; break } }; if ($hasHard) { break } }
+                if (-not $hasHard) { $patterns = [System.Collections.Generic.List[string]]@($patterns | Where-Object { $_ -ne "ClientPlayerInteractionManagerMixin" }) }
+                $seriousNonLic = @($patterns | Where-Object { $_ -ne "License/HWID check detected" -and $_ -notmatch "obfuscation" })
+                if (($patterns | Where-Object { $_ -eq "License/HWID check detected" }).Count -gt 0 -and $seriousNonLic.Count -eq 0) {
+                    $patterns = [System.Collections.Generic.List[string]]@($patterns | Where-Object { $_ -ne "License/HWID check detected" })
+                }
+                if ($patterns.Count -gt 0) {
+                    $suspicious.Add(@{ File = $result.File; Hash = $hash; Patterns = $patterns; DlSource = $src })
+                } elseif (-not $verifiedNamesSet.Contains($result.File)) {
+                    $unknown.Add(@{ File = $result.File; Hash = $hash; DlSource = $src })
+                }
+            } elseif (-not $verifiedNamesSet.Contains($result.File)) {
+                $unknown.Add(@{ File = $result.File; Hash = $hash; DlSource = $src })
+            }
+
+            # Bypass / injection flags
+            if ($result.BypassFlags.Count -gt 0) { $injected.Add(@{ File = $result.File; Flags = $result.BypassFlags }) }
+
+            # Obfuscation flags (only if not already flagged as suspicious or injected)
+            if ($result.ObfFlags.Count -gt 0) {
+                $alreadyFlagged = ($suspicious | Where-Object { $_.File -eq $result.File }).Count -gt 0 -or
+                                  ($injected   | Where-Object { $_.File -eq $result.File }).Count -gt 0
+                if (-not $alreadyFlagged) { $obfuscated.Add(@{ File = $result.File; Flags = $result.ObfFlags }) }
+            }
         }
-        if ($patterns.Count -gt 0) {
-            $suspicious.Add(@{ File = $result.File; Hash = $hash; Patterns = $patterns; DlSource = $src })
-        } elseif (-not $verifiedNamesSet.Contains($result.File)) {
-            $unknown.Add(@{ File = $result.File; Hash = $hash; DlSource = $src })
-        }
-    } elseif (-not $verifiedNamesSet.Contains($result.File)) {
-        $unknown.Add(@{ File = $result.File; Hash = $hash; DlSource = $src })
     }
 
-    # Bypass / injection flags
-    if ($result.BypassFlags.Count -gt 0) { $injected.Add(@{ File = $result.File; Flags = $result.BypassFlags }) }
+    # Update progress bar after processing all newly-finished jobs this tick
+    $pct2 = [int](($doneCount / $total) * 100)
+    $bar2 = "#" * [int]($pct2 / 5); $emp2 = "-" * (20 - $bar2.Length)
+    Write-Host "`r  [$bar2$emp2] $pct2%  $lastShown                              " -NoNewline -ForegroundColor Yellow
 
-    # Obfuscation flags (only if not already flagged as suspicious or injected)
-    if ($result.ObfFlags.Count -gt 0) {
-        $alreadyFlagged = ($suspicious | Where-Object { $_.File -eq $result.File }).Count -gt 0 -or
-                          ($injected   | Where-Object { $_.File -eq $result.File }).Count -gt 0
-        if (-not $alreadyFlagged) { $obfuscated.Add(@{ File = $result.File; Flags = $result.ObfFlags }) }
-    }
+    if ($pending.Count -gt 0) { Start-Sleep -Milliseconds 100 }
 }
+Write-Host "`r  [####################] 100% Done                                                    " -ForegroundColor Green
+Write-Host ""
+
 $pool.Close(); $pool.Dispose()
 
 # ── Pass 2 summary (original style) ─────────────────────────────
