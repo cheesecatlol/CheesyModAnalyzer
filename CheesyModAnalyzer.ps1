@@ -213,7 +213,13 @@ function Write-SectionHeader([string]$Title, [ConsoleColor]$Color = "Yellow") {
     "Ａｃｔｉｖａｔｅ Ｋｅｙ","Ｃｌｉｃｋ Ｓｉｍｕｌａｔｉｏｎ","Ｏｎ ＲＭＢ","Ｎｏ Ｃｏｕｎｔ Ｇｌｉｔｃｈ",
     "Ｎｏ Ｂｏｕｎｃｅ","ＮｏＢｏｕｎｃｅ","Ｒｅｍｏｖｅｓ ｔｈｅ ｃｒｙｓｔａｌ ｂｏｕｎｃｅ ａｎｉｍａｔｉｏｎ",
     "Ｐｌａｃｅ Ｄｅｌａｙ","Ｂｒｅａｋ Ｄｅｌａｙ","Ｆａｓｔ Ｍｏｄｅ","Ｐｌａｃｅ Ｃｈａｎｃｅ","Ｂｒｅａｋ Ｃｈａｎｃｅ",
-    "Ｓｔｏｐ Ｏｎ Ｋｉｌｌ","Ｄｑｒｋｉｓ Ｃｌｉｅｎｔ"
+    "Ｓｔｏｐ Ｏｎ Ｋｉｌｌ","Ｄｑｒｋｉｓ Ｃｌｉｅｎｔ",
+    "FINDING_SPAWNER","OPENING_SPAWNER","WAITING_SPAWNER_GUI","LOOTING_BONES","CLOSING_SPAWNER",
+    "ORDER_COMMAND","WAIT_ORDER_GUI","SELECT_ORDER_ITEM","WAIT_DELIVERY_GUI","DELIVERING_BONES",
+    "WAIT_AFTER_DELIVERY_1","CLOSING_DELIVERY","WAIT_AFTER_CLOSE_DELIVERY",
+    "WAIT_CONFIRM_GUI","WAIT_CONFIRM_SETTLE","CLICK_CONFIRM_SLOT",
+    "WAIT_AFTER_CONFIRM_1","WAIT_AFTER_CONFIRM_2","WAIT_AFTER_CONFIRM_3",
+    "DOUBLE_ESCAPE","DOUBLE_RIGHTCLICK_FIRST","DOUBLE_RIGHTCLICK_SECOND","POST_CYCLE_DELAY"
 )
 
  $knownCheatFileTokens = @(
@@ -1687,7 +1693,7 @@ $hardCheatIndicators = [string[]]@(
     "AntiAntiCheat","GrimBypass","NCPBypass","AACBypass","WatchdogBypass",
     "Runtime command execution","Known cheat filename token","Known obfuscator"
 )
-$verifiedNamesSet = [System.Collections.Generic.HashSet[string]]::new($verifiedNames, [System.StringComparer]::OrdinalIgnoreCase)
+$verifiedNamesSet = [System.Collections.Generic.HashSet[string]]::new([string[]]@($verifiedNames), [System.StringComparer]::OrdinalIgnoreCase)
 
 while ($pending.Count -gt 0) {
     $finished = $pending | Where-Object { $_.Handle.IsCompleted }
