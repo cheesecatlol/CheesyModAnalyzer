@@ -645,8 +645,12 @@ function Invoke-JarScan([string]$FilePath) {
             $fwMatches = $FullwidthRegex.Matches($utf8)
             foreach ($m in $fwMatches) { [void]$found.Add($m.Value) }
             if (-not $isLangFile) {
-                if ($JapaneseRegex.IsMatch($utf8)) { Add-Flag "Japanese obfuscation" }
-                if ($ChineseRegex.IsMatch($utf8))  { Add-Flag "Chinese obfuscation" }
+                if ($isClassFile) {
+                    # class file Japanese/Chinese is counted via obfuscation stats, not flagged here
+                } else {
+                    if ($JapaneseRegex.IsMatch($utf8)) { Add-Flag "Japanese text in config/resource" }
+                    if ($ChineseRegex.IsMatch($utf8))  { Add-Flag "Chinese text in config/resource" }
+                }
             }
         }
 
@@ -691,10 +695,6 @@ function Invoke-JarScan([string]$FilePath) {
     function Invoke-EntryPathScan([string]$name, [bool]$isLangFile) {
         $pathMatches = $UnifiedPatternRegex.Matches($name)
         foreach ($m in $pathMatches) { Add-Filtered $m.Value }
-        if (-not $isLangFile) {
-            if ($JapaneseRegex.IsMatch($name)) { Add-Flag "Japanese obfuscation" }
-            if ($ChineseRegex.IsMatch($name))  { Add-Flag "Chinese obfuscation" }
-        }
     }
 
     $zip = $null
@@ -1391,7 +1391,7 @@ $rsScanBlock = [scriptblock]::Create({
             $u=[System.Text.Encoding]::UTF8.GetString($script:buf,0,$blen)
             foreach($m in $UnifiedPatternRegex.Matches($u)){Add-Filtered $m.Value}
             foreach($m in $FullwidthRegex.Matches($u)){[void]$found.Add($m.Value)}
-            if(-not $isLang){if($JapaneseRegex.IsMatch($u)){Add-Flag "Japanese obfuscation"};if($ChineseRegex.IsMatch($u)){Add-Flag "Chinese obfuscation"}}
+            if(-not $isLang -and -not $isCls){if($JapaneseRegex.IsMatch($u)){Add-Flag "Japanese text in config/resource"};if($ChineseRegex.IsMatch($u)){Add-Flag "Chinese text in config/resource"}}
         }
         if($isCls){
             if($RuntimeExecRegex.IsMatch($ascii)-and($NetworkCallRegex.IsMatch($ascii)-or $MalwareStrRegex.IsMatch($ascii))){Add-Flag "Runtime command execution"}
@@ -1418,7 +1418,6 @@ $rsScanBlock = [scriptblock]::Create({
 
     function Scan-EntryPath([string]$n,[bool]$isLang){
         foreach($m in $UnifiedPatternRegex.Matches($n)){Add-Filtered $m.Value}
-        if(-not $isLang){if($JapaneseRegex.IsMatch($n)){Add-Flag "Japanese obfuscation"};if($ChineseRegex.IsMatch($n)){Add-Flag "Chinese obfuscation"}}
     }
 
     $bypassFlags = [System.Collections.Generic.List[string]]::new()
@@ -1715,7 +1714,15 @@ while ($pending.Count -gt 0) {
                 $hasHard = $false
                 foreach ($p in $patterns) { foreach ($hc in $hardCheatIndicators) { if ($p -like "*$hc*") { $hasHard = $true; break } }; if ($hasHard) { break } }
                 if (-not $hasHard) { $patterns = [System.Collections.Generic.List[string]]@($patterns | Where-Object { $_ -ne "ClientPlayerInteractionManagerMixin" }) }
-                $seriousNonLic = @($patterns | Where-Object { $_ -ne "License/HWID check detected" -and $_ -notmatch "obfuscation" })
+                $obfuscationOnlyFlags = @(
+                    "Short-path obfuscation (a/b/c/ structure)",
+                    "Single-char class names (heavy obfuscation)",
+                    "Japanese text in config/resource",
+                    "Chinese text in config/resource"
+                )
+                $seriousNonLic = @($patterns | Where-Object {
+                    $_ -ne "License/HWID check detected" -and $obfuscationOnlyFlags -notcontains $_
+                })
                 if (($patterns | Where-Object { $_ -eq "License/HWID check detected" }).Count -gt 0 -and $seriousNonLic.Count -eq 0) {
                     $patterns = [System.Collections.Generic.List[string]]@($patterns | Where-Object { $_ -ne "License/HWID check detected" })
                 }
